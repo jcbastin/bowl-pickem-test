@@ -6,8 +6,9 @@ import os
 API_KEY = os.getenv("CFBD_API_KEY")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-# Shared CSV directory for Render
+# Shared directories for Render
 CSV_DIR = "/opt/render/project/src/data"
+DISK_DIR = "/opt/render/project/src/storage"
 
 # Path to your CSV (on Render this will be on the persistent disk)
 CSV_PATH = f"{CSV_DIR}/test_games.csv"
@@ -87,7 +88,7 @@ def main():
     # Save only if something changed
     if updated_any:
         try:
-            df.to_csv(CSV_PATH, index=False)
+            df.to_csv(f"{DISK_DIR}/test_games.csv", index=False)
             print("💾 CSV updated successfully.")
         except Exception as e:
             print(f"❌ Failed to write updated CSV: {e}")

@@ -5,13 +5,12 @@ from dotenv import load_dotenv
 
 # ---------- ENV & APP SETUP ---------- #
 
-
-
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")  # fallback for local
 
-# Shared CSV directory for Render
+# Shared directories for Render
 CSV_DIR = "/opt/render/project/src/data"
+DISK_DIR = "/opt/render/project/src/storage"
 
 # ---------- HELPER FUNCTIONS ---------- #
 
@@ -60,26 +59,14 @@ def load_spreads():
 
 def user_has_submitted(username: str) -> bool:
     """
-    Return True if this username has a full set of picks in picks.csv
-    (point values 1 through 5 present).
+    Check if the user has already submitted picks.
     """
     picks_path = f"{CSV_DIR}/picks.csv"
-    if not os.path.exists(picks_path) or not username:
+    if not os.path.exists(picks_path):
         return False
 
     df = pd.read_csv(picks_path)
-    df_user = df[df["username"] == username]
-
-    if df_user.empty:
-        return False
-
-    try:
-        point_vals = set(df_user["point_value"].astype(int).unique())
-    except Exception:
-        point_vals = set(df_user["point_value"].unique())
-
-    required = {1, 2, 3, 4, 5}
-    return required.issubset(point_vals)
+    return username in df["username"].values
 
 
 def write_final_picks_to_csv(username: str, picks_by_page: dict):
