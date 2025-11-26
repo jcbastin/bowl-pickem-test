@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Review Your Picks</title>
+</head>
+<body>
+    <h1>📝 Review Your Picks, {{ username }}</h1>
+
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+        <tr style="background-color: #f2f2f2;">
+            <th>Point Value</th>
+            <th>Matchup</th>
+            <th>Your Pick</th>
+        </tr>
+
+        {% for p in picks %}
+        <tr>
+            <td>{{ p['point_value'] }}</td>
+            <td>{{ p['away_team'] }} @ {{ p['home_team'] }}</td>
+            <td>{{ p['selected_team'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+
+    <!-- Go back to last page of picks to edit -->
+    <form action="/picks/5" method="GET">
+        <button type="submit">← Go Back and Edit</button>
+    </form>
+
+    <br>
+
+    <!-- Final confirmation -->
+    <form action="/confirm_picks" method="POST">
+        <button type="submit" style="font-size: 18px; padding: 10px;">
+            Confirm Final Picks
+        </button>
+    </form>
+</body>
+</html>

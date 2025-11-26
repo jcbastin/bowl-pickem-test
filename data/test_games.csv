@@ -1,0 +1,16 @@
+game_id,bowl_name,kickoff_datetime,point_value,away_team,home_team,away_record,home_record,status,winner,completed,away_score,home_score,cfbd_game_id,spread
+1,Test Game 1,2025-11-28 17:00:00,2,Ole Miss,Mississippi State,,,NOT_STARTED,,False,,,401752788,6.5
+2,Test Game 2,2025-11-28 17:00:00,1,Iowa,Nebraska,,,NOT_STARTED,,False,,,401752916,6.5
+3,Test Game 3,2025-11-28 20:30:00,3,Georgia,Georgia Tech,,,NOT_STARTED,,False,,,401752786,12.5
+4,Test Game 4,2025-11-29 00:30:00,4,Texas A&M,Texas,,,NOT_STARTED,,False,,,401752792,2.5
+5,Test Game 5,2025-11-29 00:30:00,1,Indiana,Purdue,,,NOT_STARTED,,False,,,401752924,28.5
+6,Test Game 6,2025-11-29 02:00:00,2,Arizona,Arizona State,,,NOT_STARTED,,False,,,401756961,1.0
+7,Test Game 7,2025-11-29 17:00:00,1,Clemson,South Carolina,,,NOT_STARTED,,False,,,401752790,-2.5
+8,Test Game 8,2025-11-29 17:00:00,5,Ohio State,Michigan,,,NOT_STARTED,,False,,,401752921,9.5
+9,Test Game 9,2025-11-29 17:00:00,2,Kentucky,Louisville,,,NOT_STARTED,,False,,,401752787,-3.0
+10,Test Game 10,2025-11-29 20:30:00,3,Oregon,Washington,,,NOT_STARTED,,False,,,401752917,6.5
+11,Test Game 11,2025-11-29 20:30:00,2,LSU,Oklahoma,,,NOT_STARTED,,False,,,401752789,-10.0
+12,Test Game 12,2025-11-29 20:30:00,3,Vanderbilt,Tennessee,,,NOT_STARTED,,False,,,401752791,-3.0
+13,Test Game 13,2025-11-29 21:30:00,1,UCLA,USC,,,NOT_STARTED,,False,,,401752919,-22.0
+14,Test Game 14,2025-11-30 00:30:00,4,Alabama,Auburn,,,NOT_STARTED,,False,,,401752784,6.5
+15,Test Game 15,2025-11-30 02:00:00,1,UNLV,Nevada,,,NOT_STARTED,,False,,,401760425,7.5

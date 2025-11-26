@@ -1,0 +1,23 @@
+services:
+  - name: bowl-pickem-backend
+    type: web
+    env: python
+    plan: starter        # free works but sleeps; starter recommended for live test
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    autoDeploy: true
+    envVars:
+      - key: CFBD_API_KEY
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  - name: bowl-pickem-cron
+    type: cron
+    env: python
+    schedule: "*/5 * * * *"        # every 5 minutes
+    buildCommand: "pip install -r requirements.txt"
+    command: "python update_winners_live.py"
+    envVars:
+      - key: CFBD_API_KEY
+        sync: false

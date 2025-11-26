@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enter Your Name</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>🏈 Welcome to Bowl Pick 'Em</h1>
+    <p>Please enter your name to start making your picks.</p>
+
+    <form method="POST" action="/set_name">
+        <label for="username">Your name:</label>
+        <input type="text" id="username" name="username" required>
+        <br><br>
+        <button type="submit">Start Picks →</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,17 @@
+.logo-img {
+    height: 55px;
+    width: auto;
+    object-fit: contain;
+    margin-left: 10px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.team-logo {
+    width: 60px;          /* consistent size */
+    height: 60px;
+    object-fit: contain;
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+}

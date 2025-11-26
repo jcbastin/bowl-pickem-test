@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>2 Point Games</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>🏈 2-Point Games</h1>
+<p>Welcome, {{ username }}!</p>
+
+<form method="POST" action="/submit_picks/2">
+
+    {% for game in games %}
+    <div style="margin-bottom: 20px;">
+
+        <strong>{{ game['away_team'] }} at {{ game['home_team'] }}</strong>
+        <span style="font-weight: normal; color: #444;">
+    {% set raw = spreads.get(game['game_id']) %}
+    {% if raw is not none and raw == raw %}  {# catches NaN #}
+        {% set abs_sp = raw|abs %}
+
+        {% if raw < 0 %}
+            — {{ game['home_team'] }} -{{ abs_sp }}
+        {% elif raw > 0 %}
+            — {{ game['away_team'] }} -{{ abs_sp }}
+        {% endif %}
+    {% endif %}
+</span>
+
+        <br><br>
+
+        <label style="display: flex; align-items: center; margin-bottom: 8px;">
+            <input type="radio"
+                   name="{{ game['game_id'] }}"
+                   value="{{ game['away_team'] }}"
+                   {% if page_picks.get(game['game_id']) == game['away_team'] %}checked{% endif %}
+                   required>
+            {{ game['away_team'] }} ({{ records.get(game['away_team'], '0-0') }})
+            <img class="team-logo" src="{{ url_for('static', filename='logos/' + game['away_team'].replace(' ', '_') + '.png') }}">
+        </label>
+
+        <label style="display: flex; align-items: center;">
+            <input type="radio"
+                   name="{{ game['game_id'] }}"
+                   value="{{ game['home_team'] }}"
+                   {% if page_picks.get(game['game_id']) == game['home_team'] %}checked{% endif %}>
+            {{ game['home_team'] }} ({{ records.get(game['home_team'], '0-0') }})
+            <img class="team-logo" src="{{ url_for('static', filename='logos/' + game['home_team'].replace(' ', '_') + '.png') }}">
+        </label>
+
+    </div>
+    <hr>
+    {% endfor %}
+
+    <button type="submit" name="direction" value="back" formnovalidate>← Back</button>
+    <button type="submit" name="direction" value="next">Next →</button>
+
+</form>
+
+</body>
+</html>

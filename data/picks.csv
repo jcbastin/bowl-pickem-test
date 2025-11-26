@@ -1,0 +1,61 @@
+username,game_id,selected_team,point_value
+Josh,13,USC,1
+Josh,15,UNLV,1
+Josh,2,Iowa,1
+Josh,5,Indiana,1
+Josh,7,South Carolina,1
+Josh,1,Ole Miss,2
+Josh,11,Oklahoma,2
+Josh,6,Arizona State,2
+Josh,9,Kentucky,2
+Josh,10,Oregon,3
+Josh,12,Vanderbilt,3
+Josh,3,Georgia,3
+Josh,14,Auburn,4
+Josh,4,Texas,4
+Josh,8,Ohio State,5
+Syd,13,USC,1
+Syd,15,UNLV,1
+Syd,2,Iowa,1
+Syd,5,Indiana,1
+Syd,7,Clemson,1
+Syd,1,Ole Miss,2
+Syd,11,Oklahoma,2
+Syd,6,Arizona State,2
+Syd,9,Louisville,2
+Syd,10,Oregon,3
+Syd,12,Tennessee,3
+Syd,3,Georgia,3
+Syd,14,Auburn,4
+Syd,4,Texas A&M,4
+Syd,8,Ohio State,5
+Kari,13,USC,1
+Kari,15,UNLV,1
+Kari,2,Iowa,1
+Kari,5,Indiana,1
+Kari,7,South Carolina,1
+Kari,1,Ole Miss,2
+Kari,11,Oklahoma,2
+Kari,6,Arizona State,2
+Kari,9,Louisville,2
+Kari,10,Oregon,3
+Kari,12,Vanderbilt,3
+Kari,3,Georgia,3
+Kari,14,Alabama,4
+Kari,4,Texas A&M,4
+Kari,8,Ohio State,5
+Dad,13,USC,1
+Dad,15,UNLV,1
+Dad,2,Iowa,1
+Dad,5,Indiana,1
+Dad,7,Clemson,1
+Dad,1,Ole Miss,2
+Dad,11,Oklahoma,2
+Dad,6,Arizona,2
+Dad,9,Louisville,2
+Dad,10,Washington,3
+Dad,12,Tennessee,3
+Dad,3,Georgia,3
+Dad,14,Auburn,4
+Dad,4,Texas A&M,4
+Dad,8,Ohio State,5

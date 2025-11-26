@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Picks Board</title>
+    <meta http-equiv="refresh" content="30">
+
+    <style>
+        /* Scroll container */
+        .scroll-container {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 80vh;
+            white-space: nowrap;
+            padding-bottom: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: max-content;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: center;
+            white-space: nowrap;
+            background: white;
+        }
+
+        /* ----------------------------------------- */
+        /* FIXED COLUMN WIDTHS */
+        /* ----------------------------------------- */
+        .col-rank {
+            width: 80px;
+            min-width: 80px;
+            max-width: 80px;
+        }
+
+        .col-username {
+            width: 180px;
+            min-width: 180px;
+            max-width: 180px;
+        }
+
+        .col-total {
+            width: 130px;
+            min-width: 130px;
+            max-width: 130px;
+        }
+
+        /* ----------------------------------------- */
+        /* STICKY HEADER (vertical scroll) */
+        /* ----------------------------------------- */
+        th {
+            position: sticky;
+            top: 0;
+            background-color: #f2f2f2;
+        }
+
+        /* ----------------------------------------- */
+        /* FROZEN LEFT COLUMNS (horizontal scroll) */
+        /* ----------------------------------------- */
+        
+        /* Rank column */
+        .col-rank {
+            position: sticky;
+            left: 0;
+            background: white;
+        }
+        
+        th.col-rank {
+            z-index: 103;
+            background-color: #f2f2f2;
+        }
+        
+        td.col-rank {
+            z-index: 3;
+        }
+
+        /* Username column */
+        .col-username {
+            position: sticky;
+            left: 80px;
+            background: white;
+        }
+        
+        th.col-username {
+            z-index: 102;
+            background-color: #f2f2f2;
+        }
+        
+        td.col-username {
+            z-index: 2;
+        }
+
+        /* Total Points column */
+        .col-total {
+            position: sticky;
+            left: 260px;
+            background: white;
+        }
+        
+        th.col-total {
+            z-index: 101;
+            background-color: #f2f2f2;
+        }
+        
+        td.col-total {
+            z-index: 1;
+        }
+
+        /* Regular header cells */
+        th:not(.col-rank):not(.col-username):not(.col-total) {
+            z-index: 100;
+        }
+
+        /* ----------------------------------------- */
+        /* Correct/incorrect highlighting */
+        /* ----------------------------------------- */
+        .correct { background-color: #c6f6c6; }
+        .incorrect { background-color: #ffcccc; }
+    </style>
+</head>
+
+<body>
+
+<h1>📊 Picks Board</h1>
+<p style="color: gray;">(Auto-refreshes every 30 seconds)</p>
+
+<p>
+    <a href="/">🏠 Home</a> |
+    <a href="/leaderboard">🏆 Leaderboard</a>
+</p>
+
+<div class="scroll-container">
+<table>
+
+    <!-- HEADER ROW -->
+    <tr>
+        <th class="col-rank">Rank</th>
+        <th class="col-username">Username</th>
+        <th class="col-total">Total Points</th>
+
+        {% for g in games %}
+            <th>{{ g.label }}</th>
+        {% endfor %}
+    </tr>
+
+    <!-- DATA ROWS -->
+    {% for row in picks %}
+    <tr>
+        <td class="col-rank">{{ row.rank }}</td>
+
+        <td class="col-username">
+            <strong><a href="/user/{{ row.username }}">{{ row.username }}</a></strong>
+        </td>
+
+        <td class="col-total">{{ row.total_points }}</td>
+
+        {% for g in games %}
+            {% set cell = row.picks.get(g.game_id, {}) %}
+            {% set pick = cell.get("pick", "") %}
+            {% set cls = cell.get("class", "") %}
+            <td class="{{ cls }}">{{ pick }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+
+</table>
+</div>
+
+</body>
+</html>

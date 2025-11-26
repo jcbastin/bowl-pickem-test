@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bowl Pick 'Em – Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h1>🏈 Bowl Pick 'Em</h1>
+
+    {% if username %}
+        <p>Welcome back, {{ username }}!</p>
+    {% else %}
+        <p>Welcome! Enter your name and make your picks to get started.</p>
+    {% endif %}
+
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 260px;">
+
+        <!-- Make My Picks -->
+        <a href="{{ url_for('enter_name') }}" 
+           style="display:inline-block; padding:10px 16px; border:1px solid #333; border-radius:6px; text-decoration:none;">
+            Make My Picks
+        </a>
+
+        <!-- View Leaderboard -->
+        <a href="{{ url_for('leaderboard') }}"
+           style="display:inline-block; padding:10px 16px; border:1px solid #333; border-radius:6px; text-decoration:none;">
+            View Leaderboard
+        </a>
+
+        <!-- View Picks Board (gated) -->
+        {% if has_submitted %}
+            <a href="{{ url_for('picks_board') }}"
+               style="display:inline-block; padding:10px 16px; border:1px solid #333; border-radius:6px; text-decoration:none;">
+                View Picks Board
+            </a>
+        {% else %}
+            <button disabled
+                    style="padding:10px 16px; border:1px solid #aaa; border-radius:6px; background-color:#eee; color:#777;">
+                View Picks Board (available after you submit picks)
+            </button>
+        {% endif %}
+    </div>
+
+</body>
+</html>
