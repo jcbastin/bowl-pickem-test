@@ -11,7 +11,7 @@ CSV_DIR = "/opt/render/project/src/data"
 DISK_DIR = "/opt/render/project/src/storage"
 
 # Path to your CSV (on Render this will be on the persistent disk)
-CSV_PATH = f"{CSV_DIR}/test_games.csv"
+CSV_PATH = f"{DISK_DIR}/test_games.csv"
 
 def fetch_games():
     """Fetch games for 2025 Week 14 (regular season) with retries removed for cron simplicity."""
