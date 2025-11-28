@@ -341,7 +341,7 @@ def leaderboard():
         games_df[['game_id', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left',
-        validate='many_to-one'
+        validate='many_to_one'
     )
 
     # Defensive cleanup for point_value
@@ -449,7 +449,7 @@ def picks_board():
         games_df[['game_id', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left',
-        validate='many_to-one'       # ensures correct joining
+        validate='many_to_one'       # ensures correct joining
     )
 
     score_merged['point_value'] = score_merged['point_value'].fillna(0).astype(int)
