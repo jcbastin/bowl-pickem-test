@@ -386,7 +386,7 @@ def user_picks(username):
         games_df[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left',
-        validate='one_to-one'
+        validate='one_to_one'
     )
 
     merged['point_value'] = merged['point_value'].fillna(0).astype(int)
