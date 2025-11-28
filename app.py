@@ -383,42 +383,66 @@ def leaderboard():
 @app.route('/user/<username>')
 def user_picks(username):
     # Load data
-    games = pd.read_csv(f'{DISK_DIR}/test_games.csv')
-    picks = pd.read_csv(f'{DISK_DIR}/picks.csv')
+    games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
+    picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
 
     # Ensure consistent types
-    games['game_id'] = games['game_id'].astype(str)
-    picks['game_id'] = picks['game_id'].astype(str)
+    games_df['game_id'] = games_df['game_id'].astype(str)
+    picks_df['game_id'] = picks_df['game_id'].astype(str)
 
-    # Filter picks to only the specific user
-    user_picks = picks[picks['username'] == username].copy()
+    # Filter to ONLY this user's picks
+    user_picks = picks_df[picks_df['username'] == username].copy()
 
-    # Merge user_picks with game metadata
+    # If user has no picks, redirect home
+    if user_picks.empty:
+        return redirect('/')
+
+    # Merge user picks with full game info
     merged = user_picks.merge(
-        games[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
+        games_df[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left'
     )
 
-    # Recompute correctness and score
-    merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
+    # Ensure required columns exist
+    if 'completed' not in merged.columns:
+        merged['completed'] = False
+    if 'winner' not in merged.columns:
+        merged['winner'] = None
+    if 'point_value' not in merged.columns:
+        merged['point_value'] = 0
+
+    # Compute correctness
+    merged['correct'] = (merged['completed'] == True) & \
+                        (merged['selected_team'] == merged['winner'])
+
+    # Compute score (convert boolean → int)
     merged['score'] = merged['correct'].astype(int) * merged['point_value']
 
-    # Add CSS class for styling
+    # CSS class for green/red
     def compute_class(row):
-        if not row['completed']:
+        if not row['completed'] or pd.isna(row['winner']):
             return ""
         return "correct" if row['correct'] else "incorrect"
 
     merged['result_class'] = merged.apply(compute_class, axis=1)
 
-    # Pass data to the template
+    # Build matchup labels
+    merged['matchup'] = merged['away_team'] + " at " + merged['home_team']
+
+    # Sort by kickoff time using games_df order
+    merged = merged.sort_values('game_id')
+
+    # Calculate total score
+    total_score = int(merged['score'].sum())
+
     return render_template(
         'user_picks.html',
         username=username,
         picks=merged.to_dict(orient='records'),
-        total_score=int(merged['score'].sum())
+        total_score=total_score
     )
+
 
 
 @app.route('/picks_board')
