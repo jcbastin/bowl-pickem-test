@@ -390,27 +390,35 @@ def user_picks(username):
     games['game_id'] = games['game_id'].astype(str)
     picks['game_id'] = picks['game_id'].astype(str)
 
-    # Merge picks with game info
+    # Merge picks with required columns from games_df
     merged = picks.merge(
-        games[['game_id', 'home_team', 'away_team', 'winner', 'point_value', 'completed']],
+        games[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left'
     )
 
-    # Ensure 'completed' column exists and is boolean
-    merged['completed'] = merged['completed'].fillna(False).astype(bool)
+    # Ensure all required columns exist
+    required_cols = ['winner', 'completed', 'point_value']
+    for col in required_cols:
+        if col not in merged.columns:
+            if col == 'completed':
+                merged[col] = False
+            elif col == 'point_value':
+                merged[col] = 0
+            else:
+                merged[col] = None
 
     # Update correctness and scoring logic
     merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
     merged['score'] = merged['correct'] * merged['point_value']
 
     # Add result_class for styling
-    def determine_result_class(row):
-        if row['completed'] and isinstance(row['winner'], str) and row['winner'].strip():
-            return "correct" if row['selected_team'] == row['winner'] else "incorrect"
-        return ""
+    def compute_class(row):
+        if not row['completed'] or pd.isna(row['winner']):
+            return ""
+        return "correct" if row['selected_team'] == row['winner'] else "incorrect"
 
-    merged['result_class'] = merged.apply(determine_result_class, axis=1)
+    merged['result_class'] = merged.apply(compute_class, axis=1)
 
     return render_template(
         'user_picks.html',
