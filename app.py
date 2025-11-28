@@ -390,39 +390,29 @@ def user_picks(username):
     games['game_id'] = games['game_id'].astype(str)
     picks['game_id'] = picks['game_id'].astype(str)
 
-    # Merge picks with required columns from games_df
-    merged = picks.merge(
+    # Filter picks to only the specific user
+    user_picks = picks[picks['username'] == username].copy()
+
+    # Merge user_picks with game metadata
+    merged = user_picks.merge(
         games[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left'
     )
 
-    # Ensure all required columns exist
-    required_cols = ['winner', 'completed', 'point_value']
-    for col in required_cols:
-        if col not in merged.columns:
-            if col == 'completed':
-                merged[col] = False
-            elif col == 'point_value':
-                merged[col] = 0
-            else:
-                merged[col] = None
-
-    # Update correctness and scoring logic
+    # Recompute correctness and score
     merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
     merged['score'] = merged['correct'].astype(int) * merged['point_value']
 
-    # Add results column for display
-    def compute_results(row):
+    # Add CSS class for styling
+    def compute_class(row):
         if not row['completed']:
-            return "—"
-        if row['correct']:
-            return f"✔ {row['winner']} won"
-        return f"✘ {row['winner']} won"
+            return ""
+        return "correct" if row['correct'] else "incorrect"
 
-    merged['results'] = merged.apply(compute_results, axis=1)
+    merged['result_class'] = merged.apply(compute_class, axis=1)
 
-    # Pass point_value, score, and results to the template
+    # Pass data to the template
     return render_template(
         'user_picks.html',
         username=username,
