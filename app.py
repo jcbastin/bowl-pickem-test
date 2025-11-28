@@ -410,16 +410,19 @@ def user_picks(username):
 
     # Update correctness and scoring logic
     merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
-    merged['score'] = merged['correct'] * merged['point_value']
+    merged['score'] = merged['correct'].astype(int) * merged['point_value']
 
-    # Add result_class for styling
-    def compute_class(row):
-        if not row['completed'] or pd.isna(row['winner']):
-            return ""
-        return "correct" if row['selected_team'] == row['winner'] else "incorrect"
+    # Add results column for display
+    def compute_results(row):
+        if not row['completed']:
+            return "—"
+        if row['correct']:
+            return f"✔ {row['winner']} won"
+        return f"✘ {row['winner']} won"
 
-    merged['result_class'] = merged.apply(compute_class, axis=1)
+    merged['results'] = merged.apply(compute_results, axis=1)
 
+    # Pass point_value, score, and results to the template
     return render_template(
         'user_picks.html',
         username=username,
