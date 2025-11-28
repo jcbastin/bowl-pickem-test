@@ -338,34 +338,52 @@ def leaderboard():
     games_df['game_id'] = games_df['game_id'].astype(str)
     picks_df['game_id'] = picks_df['game_id'].astype(str)
 
-    # Clean boolean/string issues
+    # Clean booleans & missing winners
     games_df['winner'] = games_df['winner'].replace({None: "", "nan": "", "": ""})
     games_df['completed'] = games_df['completed'].replace({"True": True, "False": False}).astype(bool)
 
-    # Merge picks with game info
+    # Merge picks with games
     merged = picks_df.merge(
         games_df[['game_id', 'winner', 'completed', 'point_value']],
         on='game_id',
         how='left'
     )
 
-    # Force point_value into proper int
-    merged['point_value'] = merged['point_value'].astype(int)
+    # ---------------------------
+    # FIX POINT VALUE COLUMN
+    # ---------------------------
+    # Handle possible duplicate columns from merge
+    if 'point_value_x' in merged.columns:
+        merged.rename(columns={'point_value_x': 'point_value'}, inplace=True)
 
-    # Correctness = only when game finished & correct
-    merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
+    if 'point_value_y' in merged.columns:
+        merged.rename(columns={'point_value_y': 'point_value'}, inplace=True)
 
-    # Score = correct * point value
+    # If still missing, set safe default
+    if 'point_value' not in merged.columns:
+        merged['point_value'] = 0
+
+    # Ensure integer
+    merged['point_value'] = merged['point_value'].fillna(0).astype(int)
+
+    # ---------------------------
+    # SCORING LOGIC
+    # ---------------------------
+    merged['correct'] = (
+        (merged['completed'] == True) &
+        (merged['selected_team'] == merged['winner'])
+    )
+
     merged['score'] = merged['correct'].astype(int) * merged['point_value']
 
-    # Aggregate total points
+    # Aggregate by user
     totals = (
         merged.groupby('username', as_index=False)
         .agg({'score': 'sum'})
         .rename(columns={'score': 'total_points'})
     )
 
-    # Ranking
+    # Rank users
     totals['rank'] = totals['total_points'].rank(method='min', ascending=False).astype(int)
     totals = totals.sort_values(['rank', 'username'])
 
@@ -373,7 +391,6 @@ def leaderboard():
         'leaderboard.html',
         leaderboard=totals.to_dict(orient='records')
     )
-
 
 
 @app.route('/user/<username>')
