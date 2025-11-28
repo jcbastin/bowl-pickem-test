@@ -6,12 +6,20 @@ import os
 API_KEY = os.getenv("CFBD_API_KEY")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-# Shared directories for Render
-CSV_DIR = "/opt/render/project/src/data"
-DISK_DIR = "/opt/render/project/src/storage"
+# Default Render disk directory
+DEFAULT_DISK_DIR = "/opt/render/project/src/storage"
+DISK_DIR = os.environ.get("DISK_DIR", DEFAULT_DISK_DIR)
 
 # Path to your CSV (on Render this will be on the persistent disk)
-CSV_PATH = f"{DISK_DIR}/test_games.csv"
+CSV_PATH = os.path.join(DISK_DIR, "test_games.csv")
+
+# If the CSV doesn't exist, print directory contents
+if not os.path.exists(CSV_PATH):
+    print(f"❌ CSV not found at {CSV_PATH}")
+    try:
+        print("Contents of DISK_DIR:", os.listdir(DISK_DIR))
+    except Exception as e:
+        print(f"⚠️ Failed to list contents of {DISK_DIR}: {e}")
 
 def fetch_games():
     """Fetch games for 2025 Week 14 (regular season) with retries removed for cron simplicity."""
@@ -27,7 +35,6 @@ def fetch_games():
     except Exception as e:
         print("⚠️ Error contacting API:", e)
         return None
-
 
 def main():
     print("🔄 Running update_winners_live cron job...")
@@ -88,7 +95,7 @@ def main():
     # Save only if something changed
     if updated_any:
         try:
-            df.to_csv(f"{DISK_DIR}/test_games.csv", index=False)
+            df.to_csv(CSV_PATH, index=False)
             print("💾 CSV updated successfully.")
         except Exception as e:
             print(f"❌ Failed to write updated CSV: {e}")
@@ -96,7 +103,6 @@ def main():
         print("ℹ️ No updates needed.")
 
     print("✅ Cron job completed.")
-
 
 if __name__ == "__main__":
     main()

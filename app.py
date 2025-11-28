@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import pytz
+from scheduler import start_scheduler
 
 # ---------- ENV & APP SETUP ---------- #
 
@@ -551,6 +552,9 @@ def picks_board():
 
 # ---------- MAIN ---------- #
 
-if __name__ == '__main__':
+# Start scheduler on all deployments (including Gunicorn)
+start_scheduler()
+
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
 
