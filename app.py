@@ -11,12 +11,18 @@ from scheduler import start_scheduler
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")  # fallback for local
 
-# Shared directories for Render
-CSV_DIR = "/opt/render/project/src/data"
-DISK_DIR = "/opt/render/project/src/storage"
+# Shared directories for Render or local development
+if os.getenv("RENDER"):
+    DISK_DIR = "/opt/render/project/src/storage"
+    CSV_DIR = "/opt/render/project/src/data"
+else:
+    DISK_DIR = "./storage"
+    CSV_DIR = "./data"
+    os.makedirs(DISK_DIR, exist_ok=True)
+    os.makedirs(CSV_DIR, exist_ok=True)
 
 # Global pick deadline
-PICK_DEADLINE_PST = datetime(2025, 11, 28, 9, 0, 0, tzinfo=pytz.timezone("US/Pacific"))
+PICK_DEADLINE_PST = datetime(2025, 12, 28, 9, 0, 0, tzinfo=pytz.timezone("US/Pacific"))
 
 def picks_locked():
     now_pst = datetime.now(pytz.timezone("US/Pacific"))
@@ -107,6 +113,66 @@ def write_final_picks_to_csv(username: str, picks_by_page: dict):
         new_df.to_csv(picks_path, mode="a", header=False, index=False)
 
 
+def apply_cfp_overrides(picks_by_page, games_df):
+    """
+    Returns a modified games_df where CFP placeholder teams (TBD_*)
+    are replaced with auto-advanced winners based on the user's picks.
+    This does NOT modify the CSV, only the DataFrame used for rendering.
+    """
+    games_df = games_df.copy()
+
+    # ------------------------------------
+    # ROUND 1 → QUARTERFINAL PLACEMENTS
+    # ------------------------------------
+    ROUND1_MAP = {
+        "8":  "TBD_R1_1",   # 5 Oregon vs 12 North Texas → Winner vs #4 TTU
+        "9":  "TBD_R1_2",   # 6 Ole Miss vs 11 Virginia → Winner vs #3 UGA
+        "10": "TBD_R1_3",   # 7 A&M vs 10 Alabama       → Winner vs #2 Indiana
+        "11": "TBD_R1_4",   # 8 OU vs 9 ND             → Winner vs #1 OSU
+    }
+
+    r1_picks = picks_by_page.get("2", {})
+    for game_id, placeholder in ROUND1_MAP.items():
+        winner = r1_picks.get(str(game_id))
+        if winner:
+            for col in ["away_team", "home_team"]:
+                games_df.loc[games_df[col] == placeholder, col] = winner
+
+    # ------------------------------------
+    # QUARTERFINAL → SEMIFINAL PLACEMENTS
+    # ------------------------------------
+    QF_MAP = {
+        "41": "TBD_QF_1",
+        "42": "TBD_QF_2",
+        "43": "TBD_QF_3",
+        "44": "TBD_QF_4",
+    }
+
+    qf_picks = picks_by_page.get("3", {})
+    for game_id, placeholder in QF_MAP.items():
+        winner = qf_picks.get(str(game_id))
+        if winner:
+            for col in ["away_team", "home_team"]:
+                games_df.loc[games_df[col] == placeholder, col] = winner
+
+    # ------------------------------------
+    # SEMIFINAL → CHAMPIONSHIP PLACEMENTS
+    # ------------------------------------
+    SF_MAP = {
+        "45": "TBD_SF_1",
+        "46": "TBD_SF_2",
+    }
+
+    sf_picks = picks_by_page.get("4", {})
+    for game_id, placeholder in SF_MAP.items():
+        winner = sf_picks.get(str(game_id))
+        if winner:
+            for col in ["away_team", "home_team"]:
+                games_df.loc[games_df[col] == placeholder, col] = winner
+
+    return games_df
+
+
 # ---------- ROUTES ---------- #
 
 @app.route('/')
@@ -154,6 +220,8 @@ def picks_page(points):
         return redirect(url_for('picks_board'))
 
     games = load_games()
+    picks_by_page = session.get('picks', {})
+    games = apply_cfp_overrides(picks_by_page, games)
     subset = games[games['point_value'] == points]
 
     # Define a robust spread formatting function
@@ -178,7 +246,6 @@ def picks_page(points):
     records = load_team_records()
     spreads = load_spreads()
 
-    picks_by_page = session.get('picks', {})
     page_picks = picks_by_page.get(str(points), {})
 
     return render_template(
@@ -271,6 +338,7 @@ def review_picks():
 
     # Load game metadata for matchup display
     games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
+    games_df = apply_cfp_overrides(picks_by_page, games_df)
 
     # Make sure game_id types match
     games_df['game_id'] = games_df['game_id'].astype(str)
@@ -372,16 +440,36 @@ def leaderboard():
 @app.route('/user/<username>')
 def user_picks(username):
 
+    # Load data
     games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
     picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
 
+    # Ensure consistent types
     games_df['game_id'] = games_df['game_id'].astype(str)
     picks_df['game_id'] = picks_df['game_id'].astype(str)
 
+    # Filter user picks
     user_df = picks_df[picks_df['username'] == username].copy()
     if user_df.empty:
         return redirect('/')
 
+    # -----------------------------------------
+    # Build user-specific picks_by_page
+    # to generate the user's bracket
+    # -----------------------------------------
+    user_games = {}
+    for _, row in user_df.iterrows():
+        game_id = row['game_id']
+        selected = row['selected_team']
+        pv = games_df.loc[games_df['game_id'] == game_id, 'point_value'].iloc[0]
+        user_games.setdefault(str(pv), {})[game_id] = selected
+
+    # Apply the user's bracket overrides
+    games_df = apply_cfp_overrides(user_games, games_df)
+
+    # -----------------------------------------
+    # Merge updated matchups into the user picks
+    # -----------------------------------------
     merged = user_df.merge(
         games_df[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
         on='game_id',
@@ -389,25 +477,26 @@ def user_picks(username):
         validate='one_to_one'
     )
 
+    # Scoring and flags
     merged['point_value'] = merged['point_value'].fillna(0).astype(int)
     merged['completed'] = merged['completed'].fillna(False).astype(bool)
-
     merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
     merged['score'] = merged['correct'].astype(int) * merged['point_value']
 
+    # Build matchup text
     merged['matchup'] = merged['away_team'] + " at " + merged['home_team']
 
+    # Total score
     merged = merged.sort_values('game_id')
     total_score = int(merged['score'].sum())
 
+    # Render template
     return render_template(
         'user_picks.html',
         username=username,
         picks=merged.to_dict(orient='records'),
         total_score=total_score
     )
-
-
 
 
 @app.route('/picks_board')
@@ -419,6 +508,7 @@ def picks_board():
 
     picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
     games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
+    games_df = apply_cfp_overrides({}, games_df)
 
     # If user hasn't submitted picks, redirect back to home
     if username not in picks_df['username'].unique():
