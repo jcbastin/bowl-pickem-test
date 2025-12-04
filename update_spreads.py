@@ -4,124 +4,114 @@ import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
-API_KEY = os.getenv("CFBD_API_KEY")
+
+CFBD_KEY = os.getenv("CFBD_API_KEY")
+HEADERS = {"Authorization": f"Bearer {CFBD_KEY}"}
 
 YEAR = 2025
-WEEK = 14   # <-- Week for Test 3
+WEEK = 15     # Conference Championship Week for your test
+SEASON_TYPE = "regular"
 
-# ---------- NAME CLEANING ----------
-def clean_name(name: str) -> str:
+# Paths
+if os.getenv("RENDER"):
+    DISK_DIR = "/opt/render/project/src/storage"
+else:
+    DISK_DIR = "./storage"
+
+GAMES_CSV = f"{DISK_DIR}/games.csv"
+
+
+# ----------------------------------------------
+# Fetch spreads from CFBD using cfbd_game_id
+# ----------------------------------------------
+def fetch_spread_for_game(game):
     """
-    Normalize team names so matching works even when formatting differs.
+    Extract the best spread from DraftKings > Bovada > ESPN Bet.
+    Returns "home spread" (positive if home is the favorite).
     """
-    return (
-        str(name)
-        .lower()
-        .replace("&", "and")
-        .replace("state", "st")
-        .replace(" ", "")
-        .replace(".", "")
+
+    lines = game.get("lines", [])
+    if not lines:
+        return None
+
+    # Preferred provider order
+    providers = ["DraftKings", "Bovada", "ESPN Bet"]
+
+    for provider in providers:
+        for book in lines:
+            if book.get("provider") == provider and book.get("spread") is not None:
+                return float(book["spread"])
+
+    # If no provider had a spread
+    return None
+
+
+# ----------------------------------------------
+# Pull spreads for the entire week
+# ----------------------------------------------
+def fetch_all_spreads():
+    url = (
+        f"https://api.collegefootballdata.com/lines"
+        f"?year={YEAR}&week={WEEK}&seasonType={SEASON_TYPE}"
     )
 
+    print(f"Fetching spreads from: {url}")
+    resp = requests.get(url, headers=HEADERS)
 
-# ---------- FETCH SPREADS FROM CFBD ----------
-def fetch_spreads():
-    """Fetch betting lines from CFBD API."""
-    url = f"https://api.collegefootballdata.com/lines?year={YEAR}&week={WEEK}"
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        print(f"❌ Failed to fetch spreads ({response.status_code})")
-        print(response.text)
+    try:
+        data = resp.json()
+    except Exception:
+        print("❌ ERROR: CFBD did not return JSON")
+        print(resp.text)
         return pd.DataFrame()
 
-    data = response.json()
-    rows = []
+    if not data:
+        print("⚠️ No spread data returned from CFBD.")
+        return pd.DataFrame()
 
-    for game in data:
-        home = game.get("homeTeam")
-        away = game.get("awayTeam")
-
-        # Find *FIRST* sportsbook with a spread value
-        spread_value = None
-        for book in game.get("lines", []):
-            if book.get("spread") is not None:
-                spread_value = book["spread"]
-                break
-
-        # Skip if no sportsbook has a spread
-        if spread_value is None:
-            continue
-
-        rows.append({
-            "home_team": home,
-            "away_team": away,
-            "spread": float(spread_value)
+    results = []
+    for g in data:
+        spread = fetch_spread_for_game(g)
+        results.append({
+            "cfbd_game_id": g["id"],
+            "spread": spread
         })
 
-    if not rows:
-        print("⚠️ No spreads found in API response.")
-        return pd.DataFrame()
-
-    df = pd.DataFrame(rows)
-    print(f"✅ Retrieved {len(df)} spread entries from API")
+    df = pd.DataFrame(results)
+    print(f"✅ Retrieved spreads for {len(df)} games.")
     return df
 
 
-# ---------- MATCH SPREADS TO LOCAL TEST GAMES ----------
-def update_local_spreads():
-    games = pd.read_csv("data/test_games.csv")
-    spreads = fetch_spreads()
+# ----------------------------------------------
+# Update local games.csv with spread values
+# ----------------------------------------------
+def update_spreads():
+    print(f"📂 Loading games from {GAMES_CSV}")
+    games = pd.read_csv(GAMES_CSV)
 
+    spreads = fetch_all_spreads()
     if spreads.empty:
-        print("⚠️ No spreads retrieved. CSV unchanged.")
+        print("⚠️ No spreads pulled. Leaving CSV unchanged.")
         return
 
-    # Prepare cleaned names for matching
-    games["home_clean"] = games["home_team"].apply(clean_name)
-    games["away_clean"] = games["away_team"].apply(clean_name)
+    # Make sure cfbd_game_id matches dtype
+    games["cfbd_game_id"] = games["cfbd_game_id"].astype(int)
+    spreads["cfbd_game_id"] = spreads["cfbd_game_id"].astype(int)
 
-    spreads["home_clean"] = spreads["home_team"].apply(clean_name)
-    spreads["away_clean"] = spreads["away_team"].apply(clean_name)
+    # Merge spreads directly using cfbd_game_id
+    merged = games.merge(spreads, on="cfbd_game_id", how="left")
 
-    results = []
+    # Overwrite spread column
+    merged["spread"] = merged["spread_y"].fillna(merged["spread_x"])
+    merged = merged.drop(columns=["spread_x", "spread_y"])
 
-    for _, g in games.iterrows():
-        gid = g["game_id"]
-        gh = g["home_clean"]
-        ga = g["away_clean"]
-
-        # --- Direct home/away match ---
-        direct = spreads[
-            (spreads["home_clean"] == gh) &
-            (spreads["away_clean"] == ga)
-        ]
-
-        # --- Reversed match (invert spread) ---
-        reversed_match = spreads[
-            (spreads["home_clean"] == ga) &
-            (spreads["away_clean"] == gh)
-        ]
-
-        if not direct.empty:
-            sp = direct.iloc[0]["spread"]
-            results.append((gid, sp))
-
-        elif not reversed_match.empty:
-            sp = -reversed_match.iloc[0]["spread"]
-            results.append((gid, sp))
-
-        else:
-            # No spread matched for this game
-            results.append((gid, None))
-
-    df_out = pd.DataFrame(results, columns=["game_id", "spread"])
-    df_out.to_csv("data/spreads.csv", index=False)
-
-    print("✅ Spreads updated successfully!")
+    # Save updated games.csv
+    merged.to_csv(GAMES_CSV, index=False)
+    print(f"✅ Spreads updated successfully! Saved to {GAMES_CSV}")
 
 
-# ---------- MAIN ----------
+# ----------------------------------------------
+# MAIN
+# ----------------------------------------------
 if __name__ == "__main__":
-    update_local_spreads()
+    update_spreads()

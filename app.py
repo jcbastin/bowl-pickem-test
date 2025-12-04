@@ -1,17 +1,31 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, request
 import pandas as pd
 import os
 from dotenv import load_dotenv
 from datetime import datetime
 import pytz
-from scheduler import start_scheduler
+from functools import wraps
+from flask_cors import CORS
 
-# ---------- ENV & APP SETUP ---------- #
+
+
+
+# ======================================================
+#               ENV + APP SETUP
+# ======================================================
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")  # fallback for local
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:8080"]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")
 
-# Shared directories for Render or local development
 if os.getenv("RENDER"):
     DISK_DIR = "/opt/render/project/src/storage"
     CSV_DIR = "/opt/render/project/src/data"
@@ -21,597 +35,644 @@ else:
     os.makedirs(DISK_DIR, exist_ok=True)
     os.makedirs(CSV_DIR, exist_ok=True)
 
-# Global pick deadline
-PICK_DEADLINE_PST = datetime(2025, 12, 28, 9, 0, 0, tzinfo=pytz.timezone("US/Pacific"))
+# ------------------------------------------------------
+# LOCK DEADLINE — 9 AM PST, DECEMBER 13, 2025
+# ------------------------------------------------------
+PICK_DEADLINE_PST = datetime(
+    2025, 12, 13, 9, 0, 0, tzinfo=pytz.timezone("US/Pacific")
+)
 
-def picks_locked():
+
+def picks_locked() -> bool:
+    """Return True if the global pick deadline has passed."""
     now_pst = datetime.now(pytz.timezone("US/Pacific"))
     return now_pst >= PICK_DEADLINE_PST
 
-# ---------- HELPER FUNCTIONS ---------- #
 
-@app.before_request
-def log_request():
-    print("➡️ Incoming request:", request.method, request.path)
+# ======================================================
+#               GROUP SUPPORT
+# ======================================================
+
+def load_groups():
+    """Load list of allowed groups from groups.csv in DISK_DIR."""
+    path = f"{DISK_DIR}/groups.csv"
+    if not os.path.exists(path):
+        return set()
+
+    df = pd.read_csv(path)
+    if "group_name" not in df.columns:
+        return set()
+
+    return set(df["group_name"].astype(str).str.strip())
 
 
-@app.route("/check-key")
-def check_key():
-    key = os.getenv("CFBD_API_KEY")
-    if key:
-        return "API key loaded successfully."
+ALLOWED_GROUPS = load_groups()
+
+
+def require_group(f):
+    """Decorator to ensure the <group_name> in the URL is valid."""
+    @wraps(f)
+    def wrapper(group_name, *args, **kwargs):
+        if group_name not in ALLOWED_GROUPS:
+            return {"error": f"Unknown group '{group_name}'"}, 404
+        return f(group_name, *args, **kwargs)
+
+    return wrapper
+
+
+# ======================================================
+#               DATA HELPERS
+# ======================================================
+
+def load_games() -> pd.DataFrame:
+    """Load games metadata from games.csv, with safe defaults."""
+    path = f"{DISK_DIR}/games.csv"
+    if not os.path.exists(path):
+        return pd.DataFrame(
+            columns=[
+                "game_id",
+                "point_value",
+                "winner",
+                "completed",
+                "away_team",
+                "home_team",
+                "bowl_name",
+                "kickoff_datetime",
+                "away_record",
+                "home_record",
+                "away_logo",
+                "home_logo",
+                "location",
+                "network",
+                "status",
+                "spread",
+            ]
+        )
+
+    df = pd.read_csv(path)
+    df = df.fillna("")
+    if "game_id" not in df.columns:
+        df["game_id"] = ""
+    df["game_id"] = df["game_id"].astype(str)
+    return df
+
+
+def load_picks() -> pd.DataFrame:
+    """Load picks from picks.csv and normalize schema."""
+    path = f"{DISK_DIR}/picks.csv"
+    if not os.path.exists(path):
+        return pd.DataFrame(
+            columns=[
+                "group_name",
+                "username",
+                "name",
+                "game_id",
+                "selected_team",
+                "point_value",
+            ]
+        )
+
+    df = pd.read_csv(path)
+
+    # Ensure required columns exist
+    required_columns = [
+        "group_name",
+        "username",
+        "name",
+        "game_id",
+        "selected_team",
+        "point_value",
+    ]
+    for col in required_columns:
+        if col not in df.columns:
+            if col == "point_value":
+                df[col] = 0
+            else:
+                df[col] = ""
+
+    df["game_id"] = df["game_id"].astype(str)
+    return df
+
+
+def user_has_submitted(username: str, group_name: str) -> bool:
+    """Check if a user has already submitted final picks for this group."""
+    picks_df = load_picks()
+    return (
+        (picks_df["group_name"] == group_name)
+        & (picks_df["username"] == username)
+    ).any()
+
+
+# ======================================================
+#               API ROUTES
+# ======================================================
+
+# ------------------------------
+# Get bowl games
+# ------------------------------
+@app.route("/api/<group_name>/games")
+@require_group
+def api_games(group_name):
+    df = load_games()
+    return df.to_dict(orient="records")
+
+
+# ------------------------------
+# Save in-progress picks to session_picks.csv
+# (not used by scoring, just backup / in-progress)
+# ------------------------------
+@app.route("/api/<group_name>/save_session_picks", methods=["POST"])
+@require_group
+def api_save_session_picks(group_name):
+    data = request.get_json()
+
+    if not data:
+        return {"error": "Missing JSON body"}, 400
+
+    username = data.get("username", "").strip()
+    point_value = data.get("point_value")
+    raw_picks = data.get("picks")
+
+    if not username or point_value is None or raw_picks is None:
+        return {"error": "Missing required fields"}, 400
+
+    picks_path = f"{DISK_DIR}/session_picks.csv"
+
+    if os.path.exists(picks_path):
+        df = pd.read_csv(picks_path)
     else:
-        return "API key NOT loaded."
+        df = pd.DataFrame(
+            columns=["group_name", "username", "point_value", "picks"]
+        )
 
-def load_games():
-    """Load all test games from CSV."""
-    return pd.read_csv(f"{DISK_DIR}/test_games.csv")
+    # Store raw_picks as a string for now (we never read it back in this app)
+    formatted_picks = str(raw_picks)
 
+    df = pd.concat(
+        [
+            df,
+            pd.DataFrame(
+                [
+                    {
+                        "group_name": group_name,
+                        "username": username,
+                        "point_value": point_value,
+                        "picks": formatted_picks,
+                    }
+                ]
+            ),
+        ],
+        ignore_index=True,
+    )
 
-def load_team_records():
-    df = pd.read_csv(f"{DISK_DIR}/team_records.csv")
-    records = dict(zip(df["team"], df["record"]))
+    df.to_csv(picks_path, index=False)
 
-    aliases = {
-        "NM State": ["New Mexico State", "NMSU", "NM St"],
-        "UCF": ["Central Florida"],
-        "Ole Miss": ["Mississippi"],
-        "Pitt": ["Pittsburgh"],
-        "Georgia Tech": ["Georgia Institute of Technology"],
-    }
-
-    for display_name, possible_keys in aliases.items():
-        for key in possible_keys:
-            if key in records:
-                records[display_name] = records[key]
-
-    return records
-
-
-def load_spreads():
-    df = pd.read_csv(f"{DISK_DIR}/spreads.csv")
-    return dict(zip(df["game_id"], df["spread"]))
+    return {"success": True}, 200
 
 
-def user_has_submitted(username: str) -> bool:
-    """
-    Check if the user has already submitted picks.
-    """
+# ------------------------------
+# Final submission — writes canonical picks to picks.csv
+# ------------------------------
+@app.route("/api/<group_name>/confirm_picks", methods=["POST"])
+@require_group
+def api_confirm_picks(group_name):
+    data = request.get_json()
+
+    username = data.get("username", "").strip()
+    name = data.get("name", "").strip()
+    picks = data.get("picks")  # dict: game_id → selected_team
+
+    if not username or not picks:
+        return {"error": "Missing username or picks"}, 400
+
+    games_df = load_games()
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
     picks_path = f"{DISK_DIR}/picks.csv"
-    if not os.path.exists(picks_path):
-        return False
 
-    df = pd.read_csv(picks_path)
-    return username in df["username"].values
+    if os.path.exists(picks_path):
+        picks_df = pd.read_csv(picks_path)
+    else:
+        picks_df = pd.DataFrame(
+            columns=[
+                "group_name",
+                "username",
+                "name",
+                "game_id",
+                "selected_team",
+                "point_value",
+            ]
+        )
 
+    # Drop old rows for this user & group
+    if "group_name" not in picks_df.columns:
+        picks_df["group_name"] = ""
+    if "username" not in picks_df.columns:
+        picks_df["username"] = ""
 
-def write_final_picks_to_csv(username: str, picks_by_page: dict):
-    """
-    Flatten session picks structure and append to data/picks.csv.
-    picks_by_page looks like:
-    {1: {game_id: team, ...}, 2: {...}, ...}
-    """
-    rows = []
+    picks_df = picks_df[
+        ~(
+            (picks_df["group_name"] == group_name)
+            & (picks_df["username"] == username)
+        )
+    ]
 
-    for point_value, games_dict in picks_by_page.items():
-        for game_id, selected_team in games_dict.items():
-            rows.append({
+    # Build new rows
+    new_rows = []
+    for game_id, team_name in picks.items():
+        # Look up point_value from games
+        match = games_df.loc[games_df["game_id"] == str(game_id)]
+        if match.empty:
+            # Ignore invalid game ids instead of crashing
+            continue
+        point_val = match["point_value"].values[0]
+
+        new_rows.append(
+            {
+                "group_name": group_name,
                 "username": username,
+                "name": name or username,
                 "game_id": str(game_id),
-                "selected_team": selected_team
-            })
+                "selected_team": team_name,
+                "point_value": int(point_val),
+            }
+        )
 
-    if not rows:
-        return
+    if new_rows:
+        new_df = pd.DataFrame(new_rows)
+        final_df = pd.concat([picks_df, new_df], ignore_index=True)
+    else:
+        final_df = picks_df
+
+    # Normalize and deduplicate
+    final_df = final_df.drop_duplicates(
+        subset=["group_name", "username", "game_id"], keep="last"
+    )
+    final_df["game_id"] = final_df["game_id"].astype(str)
+
+    final_df.to_csv(picks_path, index=False)
+
+    return {"success": True}, 200
+
+
+# ------------------------------
+# Username availability (per group)
+# ------------------------------
+@app.route("/api/<group_name>/check_username")
+@require_group
+def api_check_username(group_name):
+    username = request.args.get("username", "").strip()
+
+    if not username:
+        return {"available": False}
+
+    picks_df = load_picks()
+    collision = picks_df[
+        (picks_df["group_name"] == group_name)
+        & (picks_df["username"] == username)
+    ]
+
+    return {"available": collision.empty}
+
+
+# ------------------------------
+# Get user picks (for "Your Picks" page)
+# ------------------------------
+@app.route("/api/<group_name>/get_user_picks")
+@require_group
+def api_get_user_picks(group_name):
+    username = request.args.get("username", "").strip()
+    if not username:
+        return {"error": "Missing username"}, 400
+
+    picks_df = load_picks()
+
+    filtered = picks_df[
+        (picks_df["group_name"] == group_name)
+        & (picks_df["username"] == username)
+    ]
+
+    return filtered.to_dict(orient="records")
+
+
+# ------------------------------
+# User status — has submitted? is locked?
+# ------------------------------
+@app.route("/api/<group_name>/user_status")
+@require_group
+def api_user_status(group_name):
+    username = request.args.get("username", "").strip()
+
+    if not username:
+        return {"submitted": False, "locked": picks_locked()}
+
+    submitted = user_has_submitted(username, group_name)
+    locked = picks_locked()
+
+    return {"submitted": submitted, "locked": locked}
+
+
+# ------------------------------
+# Top 5 leaderboard (per group)
+# ------------------------------
+@app.route("/api/<group_name>/leaderboard_top5")
+@require_group
+def api_leaderboard_top5(group_name):
+    picks_path = f"{DISK_DIR}/picks.csv"
+    if not os.path.exists(picks_path):
+        return {"leaderboard": []}
+
+    picks_df = pd.read_csv(picks_path)
+
+    required_columns = [
+        "group_name",
+        "username",
+        "selected_team",
+        "point_value",
+        "game_id",
+    ]
+    for col in required_columns:
+        if col not in picks_df.columns:
+            picks_df[col] = 0 if col == "point_value" else ""
+
+    picks_df = picks_df[picks_df["group_name"] == group_name]
+
+    if picks_df.empty:
+        return {"leaderboard": []}
+
+    games_df = load_games()
+
+    picks_df["game_id"] = picks_df["game_id"].astype(str)
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
+    merged = picks_df.merge(
+        games_df[["game_id", "winner", "completed"]],
+        on="game_id",
+        how="left",
+    )
+
+    merged["completed"] = merged["completed"].fillna(False)
+    merged["correct"] = (merged["completed"] == True) & (
+        merged["selected_team"] == merged["winner"]
+    )
+
+    merged["score"] = merged["correct"].astype(int) * merged["point_value"]
+
+    totals = (
+        merged.groupby("username", as_index=False)["score"]
+        .sum()
+        .rename(columns={"score": "total_points"})
+    )
+
+    totals = totals.sort_values("total_points", ascending=False)
+    top5 = totals.head(5)
+
+    return {"leaderboard": top5.to_dict(orient="records")}
+
+
+# ------------------------------
+# Full leaderboard (per group)
+# ------------------------------
+@app.route("/api/<group_name>/leaderboard")
+@require_group
+def api_leaderboard(group_name):
+    picks_path = f"{DISK_DIR}/picks.csv"
+    if not os.path.exists(picks_path):
+        return {"leaderboard": []}
+
+    picks_df = pd.read_csv(picks_path)
+
+    required_columns = [
+        "group_name",
+        "username",
+        "selected_team",
+        "point_value",
+        "game_id",
+    ]
+    for col in required_columns:
+        if col not in picks_df.columns:
+            picks_df[col] = 0 if col == "point_value" else ""
+
+    picks_df = picks_df[picks_df["group_name"] == group_name]
+
+    if picks_df.empty:
+        return {"leaderboard": []}
+
+    games_df = load_games()
+
+    picks_df["game_id"] = picks_df["game_id"].astype(str)
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
+    merged = picks_df.merge(
+        games_df[["game_id", "winner", "completed"]],
+        on="game_id",
+        how="left",
+    )
+
+    merged["completed"] = merged["completed"].fillna(False)
+    merged["correct"] = (merged["completed"] == True) & (
+        merged["selected_team"] == merged["winner"]
+    )
+
+    merged["score"] = merged["correct"].astype(int) * merged["point_value"]
+
+    totals = (
+        merged.groupby("username", as_index=False)["score"]
+        .sum()
+        .rename(columns={"score": "total_points"})
+    )
+
+    totals = totals.sort_values("total_points", ascending=False)
+    totals["rank"] = totals["total_points"].rank(
+        method="min", ascending=False
+    ).astype(int)
+
+    return {"leaderboard": totals.to_dict(orient="records")}
+
+
+# ------------------------------
+# Picks board — comparison grid across all users in a group
+# ------------------------------
+@app.route("/api/<group_name>/picks_board")
+@require_group
+def api_picks_board(group_name):
+    print("\n===== PICKS BOARD DEBUG =====", flush=True)
+    print("URL group_name:", repr(group_name), flush=True)
 
     picks_path = f"{DISK_DIR}/picks.csv"
-    new_df = pd.DataFrame(rows)
+    print("picks.csv exists?", os.path.exists(picks_path), flush=True)
 
-    if not os.path.exists(picks_path):
-        new_df.to_csv(picks_path, index=False)
+    if os.path.exists(picks_path):
+        print("First 5 lines of picks.csv:", flush=True)
+        with open(picks_path, "r") as f:
+            for i in range(5):
+                line = f.readline().rstrip("\n")
+                print("  ", line, flush=True)
     else:
-        new_df.to_csv(picks_path, mode="a", header=False, index=False)
-
-
-def apply_cfp_overrides(picks_by_page, games_df):
-    """
-    Returns a modified games_df where CFP placeholder teams (TBD_*)
-    are replaced with auto-advanced winners based on the user's picks.
-    This does NOT modify the CSV, only the DataFrame used for rendering.
-    """
-    games_df = games_df.copy()
-
-    # ------------------------------------
-    # ROUND 1 → QUARTERFINAL PLACEMENTS
-    # ------------------------------------
-    ROUND1_MAP = {
-        "8":  "TBD_R1_1",   # 5 Oregon vs 12 North Texas → Winner vs #4 TTU
-        "9":  "TBD_R1_2",   # 6 Ole Miss vs 11 Virginia → Winner vs #3 UGA
-        "10": "TBD_R1_3",   # 7 A&M vs 10 Alabama       → Winner vs #2 Indiana
-        "11": "TBD_R1_4",   # 8 OU vs 9 ND             → Winner vs #1 OSU
-    }
-
-    r1_picks = picks_by_page.get("2", {})
-    for game_id, placeholder in ROUND1_MAP.items():
-        winner = r1_picks.get(str(game_id))
-        if winner:
-            for col in ["away_team", "home_team"]:
-                games_df.loc[games_df[col] == placeholder, col] = winner
-
-    # ------------------------------------
-    # QUARTERFINAL → SEMIFINAL PLACEMENTS
-    # ------------------------------------
-    QF_MAP = {
-        "41": "TBD_QF_1",
-        "42": "TBD_QF_2",
-        "43": "TBD_QF_3",
-        "44": "TBD_QF_4",
-    }
-
-    qf_picks = picks_by_page.get("3", {})
-    for game_id, placeholder in QF_MAP.items():
-        winner = qf_picks.get(str(game_id))
-        if winner:
-            for col in ["away_team", "home_team"]:
-                games_df.loc[games_df[col] == placeholder, col] = winner
-
-    # ------------------------------------
-    # SEMIFINAL → CHAMPIONSHIP PLACEMENTS
-    # ------------------------------------
-    SF_MAP = {
-        "45": "TBD_SF_1",
-        "46": "TBD_SF_2",
-    }
-
-    sf_picks = picks_by_page.get("4", {})
-    for game_id, placeholder in SF_MAP.items():
-        winner = sf_picks.get(str(game_id))
-        if winner:
-            for col in ["away_team", "home_team"]:
-                games_df.loc[games_df[col] == placeholder, col] = winner
-
-    return games_df
-
-
-# ---------- ROUTES ---------- #
-
-@app.route('/')
-def home():
-    username = session.get('username')
-    has_submitted = user_has_submitted(username) if username else False
-    return render_template(
-        'index.html',
-        username=username,
-        has_submitted=has_submitted
-    )
-
-
-@app.route('/enter_name', methods=['GET'])
-def enter_name():
-    return render_template('enter_name.html')
-
-
-@app.route('/set_name', methods=['POST'])
-def set_name():
-    username = request.form['username'].strip()
-    session['username'] = username
-    session['picks'] = {}       # reset in-session picks
-    session['finalized'] = False
-
-    # If this user already has final picks in CSV, do not allow new ones
-    if user_has_submitted(username):
-        return redirect(url_for('picks_board'))
-
-    return redirect('/picks/1')
-
-
-@app.route('/picks/<int:points>', methods=['GET'])
-def picks_page(points):
-    if picks_locked():
-        return render_template("locked.html")
-
-    if 'username' not in session:
-        return redirect('/enter_name')
-
-    username = session['username']
-
-    # If already finalized or already in CSV, no more editing
-    if session.get('finalized') or user_has_submitted(username):
-        return redirect(url_for('picks_board'))
-
-    games = load_games()
-    picks_by_page = session.get('picks', {})
-    games = apply_cfp_overrides(picks_by_page, games)
-    subset = games[games['point_value'] == points]
-
-    # Define a robust spread formatting function
-    def format_spread(row):
-        sp = row.get("spread")
-        home = row.get("home_team", "")
-
-        if pd.isna(sp):
-            return ""
-
-        try:
-            sp = float(sp)
-        except:
-            return ""
-
-        sign = "+" if sp > 0 else ""
-        return f"— {home} {sign}{sp}"
-
-    # Apply the formatting function to the subset
-    subset["spread"] = subset.apply(format_spread, axis=1)
-
-    records = load_team_records()
-    spreads = load_spreads()
-
-    page_picks = picks_by_page.get(str(points), {})
-
-    return render_template(
-        f'picks_{points}.html',
-        games=subset.to_dict(orient='records'),
-        username=username,
-        records=records,
-        spreads=spreads,
-        points=points,
-        page_picks=page_picks
-    )
-
-
-@app.route('/submit_picks/<int:points>', methods=['POST'])
-def submit_picks(points):
-    if picks_locked():
-        return render_template("locked.html")
-
-    if 'username' not in session:
-        return redirect('/enter_name')
-
-    username = session['username']
-
-    # If already done → block editing
-    if session.get('finalized') or user_has_submitted(username):
-        return redirect('/already_submitted')
-
-    form = request.form
-    direction = form.get('direction', 'next')
-
-    picks_by_page = session.get('picks', {})
-    page_key = str(points)
-    page_picks = picks_by_page.get(page_key, {})
-
-    # ONLY update picks when user clicks NEXT
-    if direction == 'next':
-        for game_id, selected_team in form.items():
-            if game_id == "direction":
-                continue
-            page_picks[game_id] = selected_team
-
-        picks_by_page[page_key] = page_picks
-        session['picks'] = picks_by_page
-
-    # NAVIGATION
-    if direction == 'back':
-        prev_points = max(1, points - 1)
-        return redirect(f'/picks/{prev_points}')
-    else:
-        if points < 5:
-            next_points = points + 1
-            return redirect(f'/picks/{next_points}')
-        else:
-            return redirect(url_for('review_picks'))
-
-
-
-
-@app.route('/review_picks')
-def review_picks():
-    if 'username' not in session:
-        return redirect('/enter_name')
-
-    username = session['username']
-
-    # If this user already has final picks in CSV,
-    # don't let them review/edit again
-    if user_has_submitted(username):
-        return redirect(url_for('picks_board'))
-
-    picks_by_page = session.get('picks', {})
-    if not picks_by_page:
-        # No picks in session yet – send them to first page
-        return redirect('/picks/1')
-
-    # Flatten in-session picks into a list of rows
-    rows = []
-    for point_value_str, games_dict in picks_by_page.items():
-        for game_id, selected_team in games_dict.items():
-            rows.append({
-                "game_id": str(game_id),
-                "selected_team": selected_team,
-                "point_value": int(point_value_str)  # "1" -> 1
-            })
-
-    if not rows:
-        return redirect('/picks/1')
-
-    picks_df = pd.DataFrame(rows)
-
-    # Load game metadata for matchup display
-    games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
-    games_df = apply_cfp_overrides(picks_by_page, games_df)
-
-    # Make sure game_id types match
-    games_df['game_id'] = games_df['game_id'].astype(str)
-    picks_df['game_id'] = picks_df['game_id'].astype(str)
-
-    # Merge picks with home/away teams
-    merged = picks_df.merge(
-        games_df[['game_id', 'home_team', 'away_team']],
-        on='game_id',
-        how='left'
-    )
-
-    # Sort nicely by point value then game_id
-    if 'point_value' in merged.columns:
-        merged = merged.sort_values(['point_value', 'game_id'])
-    else:
-        merged = merged.sort_values(['game_id'])
-
-    return render_template(
-        'review_picks.html',
-        username=username,
-        picks=merged.to_dict(orient='records')
-    )
-
-
-@app.route('/confirm_picks', methods=['POST'])
-def confirm_picks():
-    if 'username' not in session:
-        return redirect('/enter_name')
-
-    username = session['username']
-
-    # If picks already saved for this user, don't save again
-    if user_has_submitted(username):
-        session['finalized'] = True
-        return redirect(url_for('picks_board'))
-
-    picks_by_page = session.get('picks', {})
-    if not picks_by_page:
-        # No picks in session – send them back to start
-        return redirect('/picks/1')
-
-    # Write all in-session picks to CSV exactly once
-    write_final_picks_to_csv(username, picks_by_page)
-
-    # Mark as finalized for this browser session
-    session['finalized'] = True
-
-    # Optionally clear in-session picks (not required, but tidy)
-    session['picks'] = {}
-
-    # Go to picks board after confirming
-    return redirect(url_for('picks_board'))
-
-
-
-@app.route('/leaderboard')
-def leaderboard():
-    games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
-    picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
-
-    # Ensure consistent types
-    games_df['game_id'] = games_df['game_id'].astype(str)
-    picks_df['game_id'] = picks_df['game_id'].astype(str)
-
-    # Merge picks with game metadata
-    merged = picks_df.merge(
-        games_df[['game_id', 'winner', 'completed', 'point_value']],
-        on='game_id',
-        how='left',
-        validate='many_to_one'
-    )
-
-    # Defensive cleanup for point_value
-    if 'point_value_x' in merged.columns or 'point_value_y' in merged.columns:
-        merged['point_value'] = merged['point_value_y'].fillna(0).astype(int)
-        merged.drop(columns=['point_value_x', 'point_value_y'], inplace=True, errors='ignore')
-    else:
-        merged['point_value'] = merged['point_value'].fillna(0).astype(int)
-
-    # Scoring logic
-    merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
-    merged['score'] = merged['correct'].astype(int) * merged['point_value']
-
-    # Aggregate totals
-    totals = (
-        merged.groupby('username', as_index=False)['score']
-              .sum()
-              .rename(columns={'score': 'total_points'})
-    )
-
-    totals['rank'] = totals['total_points'].rank(method='min', ascending=False).astype(int)
-    totals = totals.sort_values(['rank', 'username'])
-
-    return render_template('leaderboard.html', leaderboard=totals.to_dict(orient='records'))
-
-
-
-@app.route('/user/<username>')
-def user_picks(username):
-
-    # Load data
-    games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
-    picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
-
-    # Ensure consistent types
-    games_df['game_id'] = games_df['game_id'].astype(str)
-    picks_df['game_id'] = picks_df['game_id'].astype(str)
-
-    # Filter user picks
-    user_df = picks_df[picks_df['username'] == username].copy()
-    if user_df.empty:
-        return redirect('/')
-
-    # -----------------------------------------
-    # Build user-specific picks_by_page
-    # to generate the user's bracket
-    # -----------------------------------------
-    user_games = {}
-    for _, row in user_df.iterrows():
-        game_id = row['game_id']
-        selected = row['selected_team']
-        pv = games_df.loc[games_df['game_id'] == game_id, 'point_value'].iloc[0]
-        user_games.setdefault(str(pv), {})[game_id] = selected
-
-    # Apply the user's bracket overrides
-    games_df = apply_cfp_overrides(user_games, games_df)
-
-    # -----------------------------------------
-    # Merge updated matchups into the user picks
-    # -----------------------------------------
-    merged = user_df.merge(
-        games_df[['game_id', 'home_team', 'away_team', 'winner', 'completed', 'point_value']],
-        on='game_id',
-        how='left',
-        validate='one_to_one'
-    )
-
-    # Scoring and flags
-    merged['point_value'] = merged['point_value'].fillna(0).astype(int)
-    merged['completed'] = merged['completed'].fillna(False).astype(bool)
-    merged['correct'] = (merged['completed'] == True) & (merged['selected_team'] == merged['winner'])
-    merged['score'] = merged['correct'].astype(int) * merged['point_value']
-
-    # Build matchup text
-    merged['matchup'] = merged['away_team'] + " at " + merged['home_team']
-
-    # Total score
-    merged = merged.sort_values('game_id')
-    total_score = int(merged['score'].sum())
-
-    # Render template
-    return render_template(
-        'user_picks.html',
-        username=username,
-        picks=merged.to_dict(orient='records'),
-        total_score=total_score
-    )
-
-
-@app.route('/picks_board')
-def picks_board():
-    # User must be logged in
-    username = session.get('username')
-    if not username:
-        return redirect('/')
-
-    picks_df = pd.read_csv(f'{DISK_DIR}/picks.csv')
-    games_df = pd.read_csv(f'{DISK_DIR}/test_games.csv')
-    games_df = apply_cfp_overrides({}, games_df)
-
-    # If user hasn't submitted picks, redirect back to home
-    if username not in picks_df['username'].unique():
-        return redirect('/')
-
-    # Ensure correct types
-    games_df['game_id'] = games_df['game_id'].astype(str)
-    picks_df['game_id'] = picks_df['game_id'].astype(str)
-
-    # Clean games data
-    games_df['winner'] = games_df['winner'].replace({None: "", "nan": "", "": ""})
-    games_df['completed'] = games_df['completed'].replace({"True": True, "False": False}).astype(bool)
-
-    # Metadata for table header
+        print("picks.csv missing!", flush=True)
+
+    picks_df = pd.read_csv(picks_path)
+
+    # DEBUG: show what group_name values exist in the file
+    unique_groups = picks_df["group_name"].astype(str).unique()
+    print("DEBUG groups in picks_df:", [repr(g) for g in unique_groups], flush=True)
+
+    # Ensure required columns exist (no crash)
+    required_columns = [
+        "group_name",
+        "username",
+        "selected_team",
+        "point_value",
+        "game_id",
+    ]
+    for col in required_columns:
+        if col not in picks_df.columns:
+            picks_df[col] = 0 if col == "point_value" else ""
+
+    # Normalize strings
+    picks_df["group_name"] = picks_df["group_name"].astype(str).str.strip()
+    group_name = group_name.strip()
+
+    # Filter by group
+    picks_df = picks_df[picks_df["group_name"] == group_name]
+
+    if picks_df.empty:
+        print("No picks for group—return empty.", flush=True)
+        return {"games": [], "users": []}
+
+    # Load games dataframe
+    games_df = load_games()
+    print("GAMES_DF COLUMNS:", list(games_df.columns), flush=True)
+
+    # Convert IDs to strings
+    picks_df["game_id"] = picks_df["game_id"].astype(str)
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
+    # FIX: Rename game point_value → game_point_value to avoid collision
+    games_df = games_df.rename(columns={"point_value": "game_point_value"})
+
+    # Build ordered games list
     games_meta = []
-    for _, row in games_df.sort_values('game_id').iterrows():
-        games_meta.append({
-            "game_id": row['game_id'],
-            "label": f"{row['away_team']} @ {row['home_team']}",
-            "completed": row['completed'],
-            "winner": row['winner']
-        })
+    for _, row in games_df.sort_values("game_id").iterrows():
+        games_meta.append(
+            {
+                "game_id": row["game_id"],
+                "label": f"{row['away_team']} @ {row['home_team']}",
+                "winner": row.get("winner", ""),
+                "completed": bool(row.get("completed", False)),
+                "point_value": int(row.get("game_point_value", 0)),
+            }
+        )
 
-    # ============================
-    # SCORE MERGE (FIXED VERSION)
-    # ============================
-    score_merged = picks_df.merge(
-        games_df[['game_id', 'winner', 'completed', 'point_value']],
-        on='game_id',
-        how='left',
-        validate='many_to_one'       # ensures correct joining
+    # Merge picks with game scoring data
+    merged = picks_df.merge(
+        games_df[["game_id", "winner", "completed", "game_point_value"]],
+        on="game_id",
+        how="left",
     )
 
-    score_merged['point_value'] = score_merged['point_value'].fillna(0).astype(int)
-    score_merged['completed'] = score_merged['completed'].fillna(False).astype(bool)
+    # Fill missing fields
+    merged["completed"] = merged["completed"].fillna(False)
+    merged["game_point_value"] = merged["game_point_value"].fillna(0).astype(int)
 
-    score_merged['correct'] = (
-        (score_merged['completed'] == True) &
-        (score_merged['selected_team'] == score_merged['winner'])
+    # Determine correct picks
+    merged["correct"] = (merged["completed"] == True) & (
+        merged["selected_team"] == merged["winner"]
     )
 
-    score_merged['score'] = score_merged['correct'].astype(int) * score_merged['point_value']
+    # Score = correct * game point value
+    merged["score"] = merged["correct"].astype(int) * merged["game_point_value"]
 
-    # Aggregate total per user
+    # Aggregate totals by user
     totals = (
-        score_merged.groupby('username', as_index=False)['score']
+        merged.groupby("username", as_index=False)["score"]
         .sum()
-        .rename(columns={'score': 'total_points'})
+        .rename(columns={"score": "total_points"})
+        .sort_values("total_points", ascending=False)
     )
 
-    totals['rank'] = totals['total_points'].rank(method='min', ascending=False).astype(int)
-    totals = totals.sort_values(['rank', 'username'])
+    # Build output user list
+    users_output = []
+    for _, user_row in totals.iterrows():
+        username = user_row["username"]
+        total_points = int(user_row["total_points"])
 
-    # Build a list of user rows with picks + classes
-    picks_rows = []
+        user_picks_df = merged[merged["username"] == username]
 
-    for _, urow in totals.iterrows():
-        user = urow['username']
-        user_picks = picks_df[picks_df['username'] == user]
-
-        user_row = {}
-
-        for _, up in user_picks.iterrows():
-            gid = up['game_id']
-            pick = up['selected_team']
-
-            # Default styling
-            cell_class = ""
-
-            # Game info
-            game_row = games_df[games_df['game_id'] == gid].iloc[0]
-            completed = bool(game_row['completed'])
-            winner = game_row['winner']
-
-            # Only color if game completed & has winner
-            if completed and isinstance(winner, str) and winner.strip() != "":
-                cell_class = "correct" if pick == winner else "incorrect"
-
-            user_row[gid] = {
-                "pick": pick,
-                "class": cell_class
+        pick_map = {}
+        for _, r in user_picks_df.iterrows():
+            pick_map[r["game_id"]] = {
+                "pick": r["selected_team"],
+                "correct": bool(r["correct"]),
+                "completed": bool(r["completed"]),
+                "point_value": int(r["game_point_value"]),
             }
 
-        picks_rows.append({
-            'username': user,
-            'rank': int(urow['rank']),
-            'total_points': int(urow['total_points']),
-            'picks': user_row
-        })
+        users_output.append(
+            {
+                "username": username,
+                "total_points": total_points,
+                "picks": pick_map,
+            }
+        )
 
-    return render_template(
-        'picks_board.html',
-        games=games_meta,
-        picks=picks_rows
-    )
+    print("Returning picks board successfully.", flush=True)
+    return {"games": games_meta, "users": users_output}
 
 
+@app.route("/api/test/update_results", methods=["GET", "POST"])
+def api_test_update_results():
+    """
+    Simulates a live results feed by randomly selecting winners
+    for all games that are not yet completed.
+    """
+    import random
 
-# ---------- MAIN ---------- #
+    games_path = f"{DISK_DIR}/games.csv"
 
-# Start scheduler on all deployments (including Gunicorn)
-# start_scheduler()
+    # Load games CSV
+    try:
+        df = pd.read_csv(games_path)
+    except Exception as e:
+        return {"error": f"Failed to load games.csv: {e}"}, 500
+
+    updated = 0
+
+    # Loop through games
+    for idx, row in df.iterrows():
+        # Only update games that are not completed
+        completed = str(row.get("completed", "")).lower() == "true"
+        if completed:
+            continue
+
+        away = row.get("away_team", "")
+        home = row.get("home_team", "")
+
+        if away and home:
+            winner = random.choice([away, home])
+        else:
+            winner = ""
+
+        df.at[idx, "winner"] = winner
+        df.at[idx, "completed"] = True
+        updated += 1
+
+    # Save back to CSV
+    try:
+        df.to_csv(games_path, index=False)
+    except Exception as e:
+        return {"error": f"Failed to write games.csv: {e}"}, 500
+
+    return {
+        "status": "ok",
+        "updated_games": updated,
+        "message": f"Updated {updated} games with randomly assigned winners."
+    }
+
+
+# ======================================================
+#               MAIN
+# ======================================================
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
