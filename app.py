@@ -8,8 +8,6 @@ from functools import wraps
 from flask_cors import CORS
 
 
-
-
 # ======================================================
 #               ENV + APP SETUP
 # ======================================================
@@ -47,6 +45,43 @@ def picks_locked() -> bool:
     """Return True if the global pick deadline has passed."""
     now_pst = datetime.now(pytz.timezone("US/Pacific"))
     return now_pst >= PICK_DEADLINE_PST
+
+# ======================================================
+#               DISK SEEDING LOGIC
+# ======================================================
+
+def seed_disk():
+    """
+    Copy initial CSVs into the Render persistent disk ONLY if they do not exist.
+    Prevents overwriting live data on redeploys.
+    """
+
+    seed_dir = "./storage_seed"
+    if not os.path.exists(seed_dir):
+        print("⚠️ No seed directory found — skipping seed step.")
+        return
+
+    os.makedirs(DISK_DIR, exist_ok=True)
+
+    for filename in ["games.csv", "groups.csv", "picks.csv"]:
+        dst = f"{DISK_DIR}/{filename}"
+        src = f"{seed_dir}/{filename}"
+
+        # Only seed if disk file does NOT exist
+        if not os.path.exists(dst):
+            if os.path.exists(src):
+                import shutil
+                shutil.copy(src, dst)
+                print(f"🌱 Seeded {filename} → {dst}")
+            else:
+                print(f"⚠️ Seed file missing: {src}")
+        else:
+            print(f"✔ {filename} already exists on disk — not overwriting.")
+
+
+# Run seeding at startup (only once per deploy)
+seed_disk()
+
 
 
 # ======================================================
