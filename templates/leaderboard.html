@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🏆 Bowl Pick 'Em Leaderboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta http-equiv="refresh" content="30">
+</head>
+<body>
+
+<h1>🏆 Bowl Pick 'Em Leaderboard</h1>
+<p style="color: gray;">(Auto-refreshes every 30 seconds)</p>
+
+<!-- Navigation -->
+<p>
+    <a href="/">🏠 Home</a> |
+    <a href="/picks_board">📊 Picks Board</a>
+</p>
+
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+    <tr style="background-color: #f2f2f2;">
+        <th>Rank</th>
+        <th>Username</th>
+        <th>Total Points</th>
+    </tr>
+
+    {% for player in leaderboard %}
+    <tr>
+        <td>{{ player['rank'] }}</td>
+        <td><a href="/user/{{ player['username'] }}">{{ player['username'] }}</a></td>
+        <td>{{ player['total_points'] }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

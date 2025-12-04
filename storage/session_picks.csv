@@ -1,0 +1,78 @@
+group,username,point_value,picks,group_name
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Central Michigan', '6': 'Arkansas State', '7': 'NC State', '12': 'Toledo', '13': 'Louisiana', '14': 'Troy', '15': 'Southern Miss', '16': 'Hawaii', '17': 'Western Michigan', '18': 'Northwestern', '19': 'Utah State', '20': 'Navy', '21': 'Duke', '22': 'Clemson', '23': 'Houston', '24': 'Fresno State', '25': 'Miami Ohio', '26': 'Tennessee', '27': 'Iowa State', '28': 'Boise State', '29': 'Kennesaw State', '30': 'Nebraska', '31': 'BYU', '32': 'Vanderbilt', '33': 'Washington', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'TCU', '38': 'LSU', '39': 'Arizona', '40': 'UTSA'}",
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'NC State', '12': 'San Diego State', '13': 'Louisiana Tech', '14': 'Troy', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Utah State', '20': 'Navy', '21': 'Duke', '22': 'Clemson', '23': 'Miami', '24': 'Ohio', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Vanderbilt', '33': 'SMU', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Alabama', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'Texas A&M', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Coastal Carolina', '5': 'Central Michigan', '6': 'Arkansas State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Troy', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Utah State', '20': 'Wake Forest', '21': 'Duke', '22': 'Clemson', '23': 'Houston', '24': 'Ohio', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'Kennesaw State', '30': 'Missouri', '31': 'BYU', '32': 'Vanderbilt', '33': 'Washington', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'North Texas', '9': 'Oregon', '10': 'Alabama', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'North Texas', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'UNLV', '3': 'Old Dominion', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'San Diego State', '13': 'Louisiana', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Western Michigan', '18': 'Northwestern', '19': 'Texas State', '20': 'Navy', '21': 'Duke', '22': 'Clemson', '23': 'Miami', '24': 'Fresno State', '25': 'Miami Ohio', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Missouri', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Texas', '35': 'Iowa', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Arizona', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'Texas A&M', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'UNLV', '3': 'UConn', '4': 'Florida International', '5': 'Central Michigan', '6': 'Missouri State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Washington State', '17': 'Western Michigan', '18': 'Northwestern', '19': 'Utah State', '20': 'Navy', '21': 'Minnesota', '22': 'Clemson', '23': 'Miami', '24': 'Fresno State', '25': 'Miami Ohio', '26': 'Tennessee', '27': 'Tulane', '28': 'Boise State', '29': 'Kennesaw State', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Michigan', '35': 'Iowa', '36': 'East Carolina', '37': 'California', '38': 'Louisville', '39': 'Pittsburgh', '40': 'Delaware'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'Texas A&M', '42': 'TBD_R1_1', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Central Michigan', '6': 'Arkansas State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Washington State', '17': 'Western Michigan', '18': 'Northwestern', '19': 'Utah State', '20': 'Wake Forest', '21': 'Duke', '22': 'Army', '23': 'Houston', '24': 'Ohio', '25': 'Miami Ohio', '26': 'Georgia Tech', '27': 'Tulane', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'Washington', '34': 'Texas', '35': 'Utah', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Virginia', '10': 'Alabama', '11': 'Notre Dame'}",
+MacFarlane,jcbastin,3,"{'41': 'Texas A&M', '42': 'TBD_R1_1', '43': 'Georgia', '44': 'Alabama'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'San Diego State', '13': 'Louisiana', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Minnesota', '22': 'Army', '23': 'Miami', '24': 'Fresno State', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'Kennesaw State', '30': 'Nebraska', '31': 'BYU', '32': 'Vanderbilt', '33': 'SMU', '34': 'Michigan', '35': 'Utah', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'North Texas', '9': 'Oregon', '10': 'Alabama', '11': 'Notre Dame'}",
+MacFarlane,jcbastin,3,"{'41': 'North Texas', '42': 'TBD_R1_1', '43': 'Oregon', '44': 'Alabama'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Central Michigan', '6': 'Missouri State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Southern Miss', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Utah State', '20': 'Wake Forest', '21': 'Duke', '22': 'Clemson', '23': 'Miami', '24': 'Ohio', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Memphis', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'Washington', '34': 'Michigan', '35': 'Iowa', '36': 'East Carolina', '37': 'California', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'North Texas', '9': 'Virginia', '10': 'Alabama', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Alabama', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'Texas A&M', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Duke', '22': 'Clemson', '23': 'Miami', '24': 'Ohio', '25': 'Miami Ohio', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Texas', '35': 'Utah', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'North Texas', '9': 'Virginia', '10': 'Alabama', '11': 'Notre Dame'}",
+MacFarlane,jcbastin,3,"{'41': 'North Texas', '42': 'Texas Tech', '43': 'Alabama', '44': 'Notre Dame'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+MacFarlane,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'San Diego State', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Western Michigan', '18': 'Northwestern', '19': 'Texas State', '20': 'Wake Forest', '21': 'Duke', '22': 'Clemson', '23': 'Houston', '24': 'Fresno State', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Tulane', '28': 'Memphis', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'TCU', '38': 'LSU', '39': 'Pittsburgh', '40': 'UTSA'}",
+MacFarlane,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",
+MacFarlane,jcbastin,3,"{'41': 'Ohio State', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",
+MacFarlane,jcbastin,4,{},
+MacFarlane,jcbastin,5,{},
+,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Missouri State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Duke', '22': 'Clemson', '23': 'Houston', '24': 'Ohio', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'Kennesaw State', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'Washington', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'California', '38': 'LSU', '39': 'Arizona', '40': 'UTSA'}",MacFarlane
+,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Alabama', '11': 'Notre Dame'}",MacFarlane
+,jcbastin,3,"{'41': 'Ohio State', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",MacFarlane
+,jcbastin,4,{},MacFarlane
+,jcbastin,5,{},MacFarlane
+,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'Old Dominion', '4': 'Coastal Carolina', '5': 'Central Michigan', '6': 'Missouri State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Minnesota', '22': 'Army', '23': 'Houston', '24': 'Ohio', '25': 'Miami Ohio', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'USC', '32': 'Vanderbilt', '33': 'SMU', '34': 'Michigan', '35': 'Utah', '36': 'Kansas State', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",MacFarlane
+,jcbastin,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",MacFarlane
+,jcbastin,3,"{'41': 'Texas A&M', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",MacFarlane
+,jcbastin,4,{},MacFarlane
+,jcbastin,5,{},MacFarlane
+,jcbastin,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Coastal Carolina', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'San Diego State', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Washington State', '17': 'Western Michigan', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Duke', '22': 'Army', '23': 'Houston', '24': 'Ohio', '25': 'New Mexico', '26': 'Tennessee', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'California', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",MacFarlane
+,jcbastin,2,"{'8': 'North Texas', '9': 'Virginia', '10': 'Ole Miss', '11': 'Notre Dame'}",MacFarlane
+,jcbastin,3,"{'41': 'Ohio State', '42': 'Texas Tech', '43': 'Georgia', '44': 'Indiana'}",MacFarlane
+,jcbastin,4,{},MacFarlane
+,jcbastin,5,{},MacFarlane
+,mbastin1,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Troy', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Utah State', '20': 'Navy', '21': 'Minnesota', '22': 'Clemson', '23': 'Miami', '24': 'Fresno State', '25': 'Miami Ohio', '26': 'Georgia Tech', '27': 'Iowa State', '28': 'Memphis', '29': 'Kennesaw State', '30': 'Nebraska', '31': 'USC', '32': 'Vanderbilt', '33': 'SMU', '34': 'Texas', '35': 'Utah', '36': 'East Carolina', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'Delaware'}",MacFarlane
+,mbastin1,2,"{'8': 'North Texas', '9': 'Virginia', '10': 'Alabama', '11': 'Notre Dame'}",MacFarlane
+,mbastin1,3,"{'41': 'Ohio State', '42': 'Virginia', '43': 'Georgia', '44': 'Notre Dame'}",MacFarlane
+,mbastin1,4,{},MacFarlane
+,mbastin1,5,{},MacFarlane
+,mbastin1,1,{},MacFarlane
+,mbastin1,2,{},MacFarlane
+,sydbas,1,{},MacFarlane
+,sydbas,2,{},MacFarlane
+,sydbas,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'UConn', '4': 'Coastal Carolina', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'NC State', '12': 'San Diego State', '13': 'Louisiana Tech', '14': 'Troy', '15': 'Southern Miss', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Wake Forest', '21': 'Minnesota', '22': 'Army', '23': 'Miami', '24': 'Ohio', '25': 'New Mexico', '26': 'Georgia Tech', '27': 'Tulane', '28': 'Memphis', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'Washington', '34': 'Michigan', '35': 'Iowa', '36': 'Kansas State', '37': 'California', '38': 'LSU', '39': 'Arizona', '40': 'Delaware'}",MacFarlane
+,sydbas,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",MacFarlane
+,sydbas,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",MacFarlane
+,sydbas,3,"{'41': 'Texas A&M', '42': 'Texas Tech', '43': 'Georgia', '44': 'Oklahoma'}",MacFarlane
+,sydbas,4,{},MacFarlane
+,sydbas,5,{},MacFarlane
+,jawsyzyy,1,"{'1': 'Jackson State', '2': 'Arizona State', '3': 'Old Dominion', '4': 'Florida International', '5': 'Georgia Southern', '6': 'Arkansas State', '7': 'South Florida', '12': 'Toledo', '13': 'Louisiana Tech', '14': 'Jacksonville State', '15': 'Western Kentucky', '16': 'Hawaii', '17': 'Penn State', '18': 'Cincinnati', '19': 'Texas State', '20': 'Navy', '21': 'Duke', '22': 'Clemson', '23': 'Miami', '24': 'Ohio', '25': 'Miami Ohio', '26': 'Tennessee', '27': 'Iowa State', '28': 'Boise State', '29': 'James Madison', '30': 'Nebraska', '31': 'BYU', '32': 'Illinois', '33': 'SMU', '34': 'Texas', '35': 'Iowa', '36': 'East Carolina', '37': 'TCU', '38': 'Louisville', '39': 'Pittsburgh', '40': 'UTSA'}",MacFarlane
+,jawsyzyy,2,"{'8': 'Texas A&M', '9': 'Oregon', '10': 'Ole Miss', '11': 'Oklahoma'}",MacFarlane

@@ -1,0 +1,8 @@
+game_id,bowl_name,kickoff_datetime,point_value,away_team,home_team,away_rank,home_rank,away_record,home_record,status,winner,completed,away_score,home_score,cfbd_game_id,away_logo,home_logo,location,network,spread
+1,American Championship,2025-12-05 20:00:00,1,North Texas,Tulane,20.0,21.0,11-1,10-2,NOT_STARTED,,False,,,401777324,/static/logos/North_Texas.png,/static/logos/Tulane.png,"Yulman Stadium, New Orleans, LA",ABC,2.5
+2,Mountain West Championship,2025-12-05 20:00:00,1,UNLV,Boise State,,,10-2,8-4,NOT_STARTED,,False,,,401777326,/static/logos/UNLV.png,/static/logos/Boise_State.png,"Albertsons Stadium, Boise, ID",FOX,-5.5
+3,Big 12 Championship,2025-12-06 12:00:00,3,BYU,Texas Tech,11.0,6.0,11-1,11-1,NOT_STARTED,,False,,,401777327,/static/logos/BYU.png,/static/logos/Texas_Tech.png,"AT&T Stadium, Arlington, TX",ABC,-12.5
+4,MAC Championship,2025-12-06 12:00:00,1,Miami (OH),Western Michigan,,,7-5,8-4,NOT_STARTED,,False,,,401777329,/static/logos/Miami_OH.png,/static/logos/Western_Michigan.png,"Ford Field, Detroit, MI",ESPN,-2.5
+5,SEC Championship,2025-12-06 16:00:00,4,Georgia,Alabama,3.0,10.0,11-1,10-2,NOT_STARTED,,False,,,401777351,/static/logos/Georgia.png,/static/logos/Alabama.png,"Mercedes-Benz Stadium, Atlanta, GA",ABC,2.5
+6,Big Ten Championship,2025-12-06 20:00:00,5,Indiana,Ohio State,2.0,1.0,12-0,12-0,NOT_STARTED,,False,,,401777353,/static/logos/Indiana.png,/static/logos/Ohio_State.png,"Lucas Oil Stadium, Indianapolis, IN",FOX,-4.0
+7,ACC Championship,2025-12-06 20:00:00,2,Duke,Virginia,,16.0,7-5,10-2,NOT_STARTED,,False,,,401777328,/static/logos/Duke.png,/static/logos/Virginia.png,"Bank of America Stadium, Charlotte, NC",ABC,-4.0

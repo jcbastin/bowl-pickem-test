@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ username }}'s Picks 🏈</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            margin: 20px auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px 14px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .correct {
+            background-color: #c6f6c6;
+        }
+        .wrong {
+            background-color: #ffcccc;
+        }
+        img {
+            height: 35px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>{{ username }}'s Picks 🏈</h1>
+<h3>Total Score: {{ total_score }} points</h3>
+
+<p>
+    <a href="/">🏠 Home</a> |
+    <a href="/leaderboard">🏆 Leaderboard</a> |
+    <a href="/picks_board">📊 Picks Board</a>
+</p>
+
+<table>
+    <tr>
+        <th>Matchup</th>
+        <th>Your Pick</th>
+        <th>Result</th>
+        <th>Points</th>
+    </tr>
+
+    {% for p in picks %}
+    <tr>
+
+        <!-- MATCHUP -->
+        <td>{{ p['away_team'] }} at {{ p['home_team'] }}</td>
+
+        <!-- USER PICK WITH LOGO -->
+        <td>
+            {{ p['selected_team'] }}
+            <img src="{{ url_for('static', filename='logos/' + p['selected_team'].replace(' ', '_') + '.png') }}">
+        </td>
+
+        <!-- RESULT -->
+        {% if not p['completed'] %}
+            <td>—</td>
+        {% else %}
+            {% if p['correct'] %}
+                <td class="correct">✔ {{ p['winner'] }} won</td>
+            {% else %}
+                <td class="wrong">✘ {{ p['winner'] }} won</td>
+            {% endif %}
+        {% endif %}
+
+        <!-- POINTS (use p['score'], not p['point_value']) -->
+        {% if p['completed'] %}
+            <td>{{ p['score'] }}</td>
+        {% else %}
+            <td>—</td>
+        {% endif %}
+
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>

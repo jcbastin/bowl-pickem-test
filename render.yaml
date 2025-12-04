@@ -1,0 +1,32 @@
+services:
+  - name: bowl-pickem-backend
+    type: web
+    env: python
+    plan: starter
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    autoDeploy: true
+    envVars:
+      - key: CFBD_API_KEY
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    disk:
+      name: data-disk
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+
+  - name: bowl-pickem-cron
+    type: cron
+    env: python
+    schedule: "*/15 * * * *"
+    buildCommand: "pip install -r requirements.txt"
+    command: "python update_winners_live.py"
+    envVars:
+      - key: CFBD_API_KEY
+        sync: false
+    disk:
+      name: data-disk
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
+
