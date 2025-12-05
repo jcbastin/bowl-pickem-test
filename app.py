@@ -15,7 +15,17 @@ from flask_cors import CORS
 load_dotenv()
 
 app = Flask(__name__)
+<<<<<<< HEAD
 CORS(app, resources={r"/*": {"origins": "*"}})
+=======
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:8080"]}},
+    supports_credentials=True,
+    allow_headers=["Content-Type"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
+>>>>>>> 0a5e307ffd98249d85d727999b82b43a19696fd6
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")
 
 if os.getenv("RENDER"):
@@ -95,6 +105,7 @@ def load_groups():
     return set(df["group_name"].astype(str).str.strip())
 
 
+<<<<<<< HEAD
 ALLOWED_GROUPS = {g.lower(): g for g in load_groups()}  # map lower → real name
 
 def require_group(f):
@@ -107,6 +118,9 @@ def require_group(f):
         return f(real_name, *args, **kwargs)
     return wrapper
 
+=======
+ALLOWED_GROUPS = load_groups()
+>>>>>>> 0a5e307ffd98249d85d727999b82b43a19696fd6
 
 
 def require_group(f):
