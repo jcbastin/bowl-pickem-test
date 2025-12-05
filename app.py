@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 import pandas as pd
 import os
 from dotenv import load_dotenv
@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 from functools import wraps
 from flask_cors import CORS
+
 
 
 # ======================================================
@@ -696,6 +697,15 @@ def api_test_update_results():
         "updated_games": updated,
         "message": f"Updated {updated} games with randomly assigned winners."
     }
+
+
+# ======================================================
+#               LOGOS
+# ======================================================
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+    return send_from_directory(static_dir, filename)
 
 
 # ======================================================
