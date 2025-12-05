@@ -259,6 +259,58 @@ def api_save_session_picks(group_name):
     return {"success": True}, 200
 
 
+@app.route("/api/create-user", methods=["POST"])
+def api_create_user():
+    data = request.get_json()
+    group = data.get("group", "").strip()
+    username = data.get("username", "").strip()
+    name = data.get("name", "").strip()
+
+    if not group or not username or not name:
+        return {"error": "Missing required fields"}, 400
+
+    # Load groups to validate
+    groups_path = os.path.join(DISK_DIR, "groups.csv")
+    groups_df = pd.read_csv(groups_path)
+
+    if group not in groups_df["group_name"].values:
+        return {"error": f"Group '{group}' does not exist"}, 400
+
+    # Load picks.csv to ensure username is not already taken
+    picks_path = os.path.join(DISK_DIR, "picks.csv")
+    picks_df = pd.read_csv(picks_path)
+
+    existing = picks_df[
+        (picks_df["group_name"] == group) & 
+        (picks_df["username"] == username)
+    ]
+
+    if not existing.empty:
+        return {"error": "Username already exists"}, 400
+
+    # Create the user by writing a placeholder row for every game
+    games_path = os.path.join(DISK_DIR, "games.csv")
+    games_df = pd.read_csv(games_path)
+
+    new_rows = []
+    for _, game in games_df.iterrows():
+        new_rows.append({
+            "group_name": group,
+            "username": username,
+            "name": name,
+            "game_id": game["game_id"],
+            "selected_team": "",
+            "point_value": game["point_value"]
+        })
+
+    # Append to picks.csv
+    new_df = pd.DataFrame(new_rows)
+    updated_df = pd.concat([picks_df, new_df], ignore_index=True)
+    updated_df.to_csv(picks_path, index=False)
+
+    return {"success": True, "message": "User created"}, 200
+
+
 # ------------------------------
 # Final submission — writes canonical picks to picks.csv
 # ------------------------------
