@@ -499,11 +499,16 @@ def api_leaderboard_top5(group_name):
 
     merged["score"] = merged["correct"].astype(int) * merged["point_value"]
 
+    # Get username → name mapping
+    name_map = picks_df[["username", "name"]].drop_duplicates()
+
     totals = (
         merged.groupby("username", as_index=False)["score"]
         .sum()
         .rename(columns={"score": "total_points"})
+        .merge(name_map, on="username", how="left")
     )
+
 
     totals = totals.sort_values("total_points", ascending=False)
     top5 = totals.head(5)
@@ -557,11 +562,16 @@ def api_leaderboard(group_name):
 
     merged["score"] = merged["correct"].astype(int) * merged["point_value"]
 
+    # Add username → name mapping
+    name_map = picks_df[["username", "name"]].drop_duplicates()
+
     totals = (
         merged.groupby("username", as_index=False)["score"]
         .sum()
         .rename(columns={"score": "total_points"})
+        .merge(name_map, on="username", how="left")
     )
+
 
     totals = totals.sort_values("total_points", ascending=False)
     totals["rank"] = totals["total_points"].rank(
@@ -638,7 +648,7 @@ def api_picks_board(group_name):
         games_meta.append(
             {
                 "game_id": row["game_id"],
-                "label": f"{row['away_team']} @ {row['home_team']}",
+                "label": row.get("bowl_name", ""),
                 "winner": row.get("winner", ""),
                 "completed": bool(row.get("completed", False)),
                 "point_value": int(row.get("game_point_value", 0)),
@@ -672,7 +682,7 @@ def api_picks_board(group_name):
         .sort_values("total_points", ascending=False)
     )
 
-    # Build output user list
+      # Build output user list
     users_output = []
     for _, user_row in totals.iterrows():
         username = user_row["username"]
@@ -689,9 +699,16 @@ def api_picks_board(group_name):
                 "point_value": int(r["game_point_value"]),
             }
 
+        # Look up real name
+        real_name = ""
+        if "name" in user_picks_df.columns:
+            real_name = str(user_picks_df["name"].iloc[0])
+
         users_output.append(
             {
                 "username": username,
+                "name": real_name,
+                "display_name": f"{username} ({real_name})" if real_name else username,
                 "total_points": total_points,
                 "picks": pick_map,
             }
@@ -699,6 +716,7 @@ def api_picks_board(group_name):
 
     print("Returning picks board successfully.", flush=True)
     return {"games": games_meta, "users": users_output}
+
 
 
 @app.route("/api/test/update_results", methods=["GET", "POST"])
