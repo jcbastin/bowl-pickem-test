@@ -2,26 +2,24 @@ import pandas as pd
 import requests
 import os
 
-# Load API key from environment
+# Load API key
 API_KEY = os.getenv("CFBD_API_KEY")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-# Render disk directory
-DEFAULT_DISK_DIR = "/opt/render/project/src/storage"
-DISK_DIR = os.getenv("DISK_DIR", DEFAULT_DISK_DIR)
-
-# Path to CSV
+# Correct Render storage path
 CSV_PATH = "/opt/render/project/src/storage/games.csv"
 
-def fetch_all_games_for_week():
+
+def fetch_postseason_games():
     """
-    Fetch all CFBD games for Week 15 (conference championships) in 2025.
-    We will match strictly by CFBD game ID.
+    Fetch ALL postseason games for 2025.
+    CFBD assigns postseason games a seasonType of 'postseason'
+    and spreads them across multiple 'weeks'.
     """
     try:
         resp = requests.get(
             "https://api.collegefootballdata.com/games",
-            params={"year": 2025, "seasonType": "regular", "week": 15},
+            params={"year": 2025, "seasonType": "postseason"},
             headers=HEADERS,
             timeout=10
         )
@@ -33,26 +31,27 @@ def fetch_all_games_for_week():
 
 
 def main():
-    print("🔄 Running update_winners_live...")
+    print("🔄 Running update_winners_live for POSTSEASON 2025...")
 
-    # Load existing CSV
+    # Load games.csv
     try:
         df = pd.read_csv(CSV_PATH)
     except Exception as e:
         print(f"❌ Failed to read CSV: {CSV_PATH} → {e}")
         return
 
+    # Ensure correct types
     df["winner"] = df["winner"].astype("object")
-    df["completed"] = df["completed"].astype("bool")
+    df["completed"] = df["completed"].astype(bool)
 
-    # Fetch CFBD week 15 games
-    games = fetch_all_games_for_week()
+    # Fetch all postseason results
+    games = fetch_postseason_games()
     if not games:
         print("⚠️ No API data returned.")
         return
 
-    # Build a lookup dict by cfbd_game_id for fast matching
-    game_lookup = {g["id"]: g for g in games}
+    # Lookup by CFBD ID
+    cfbd_lookup = {g["id"]: g for g in games}
 
     updated_any = False
 
@@ -60,59 +59,47 @@ def main():
         cfbd_id = row.get("cfbd_game_id")
 
         if pd.isna(cfbd_id):
-            print(f"⚠️ Row {idx} has no cfbd_game_id — skipping.")
+            print(f"⚠️ Row {idx} has NO cfbd_game_id — skipping.")
             continue
 
         cfbd_id = int(cfbd_id)
 
-        match = game_lookup.get(cfbd_id)
-        if not match:
-            print(f"⚠️ CFBD game not found for ID {cfbd_id}")
+        match = cfbd_lookup.get(cfbd_id)
+        if match is None:
+            print(f"⚠️ CFBD game NOT FOUND for ID {cfbd_id}")
             continue
 
-        # Check completion
+        # Skip unplayed games
         if not match.get("completed", False):
             continue
 
+        # Extract data
         home = match["homeTeam"]
         away = match["awayTeam"]
         home_pts = match.get("homePoints")
         away_pts = match.get("awayPoints")
 
-        # Safety fallback
         if home_pts is None or away_pts is None:
-            continue
+            continue  # not complete
 
+        # Determine winner
         winner = home if home_pts > away_pts else away
 
-        # Update CSV only if changed
-        if df.loc[idx, "winner"] != winner:
+        # Update only if changed
+        if (
+            df.loc[idx, "winner"] != winner
+            or df.loc[idx, "completed"] is False
+            or df.loc[idx, "home_score"] != home_pts
+            or df.loc[idx, "away_score"] != away_pts
+        ):
             print(f"✔ UPDATED: {away} vs {home} → {winner}")
 
             df.loc[idx, "winner"] = winner
             df.loc[idx, "completed"] = True
-            df.loc[idx, "away_score"] = away_pts
             df.loc[idx, "home_score"] = home_pts
+            df.loc[idx, "away_score"] = away_pts
 
             updated_any = True
-
-
-    print("📁 CWD:", os.getcwd())
-    print("📁 Listing /opt/render/project/src:")
-    try:
-        print(os.listdir("/opt/render/project/src"))
-    except Exception as e:
-        print("Error listing /opt/render/project/src:", e)
-
-    print("📁 Checking storage directory:")
-    print("Storage exists:", os.path.exists("/opt/render/project/src/storage"))
-
-    if os.path.exists("/opt/render/project/src/storage"):
-        print("📁 Contents of storage dir:", os.listdir("/opt/render/project/src/storage"))
-
-    print("📄 CSV_PATH being used:", CSV_PATH)
-    print("📄 Can read parent directory of CSV_PATH:", os.path.exists(os.path.dirname(CSV_PATH)))
-
 
     # Save updates
     if updated_any:
@@ -124,7 +111,7 @@ def main():
     else:
         print("ℹ️ No updates needed.")
 
-    print("✅ update_winners_live completed.")
+    print("✅ update_winners_live POSTSEASON completed.")
 
 
 if __name__ == "__main__":

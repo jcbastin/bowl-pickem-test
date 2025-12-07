@@ -888,6 +888,7 @@ def internal_update_winners():
     update_winners_live.main()
     return {"status": "ok"}
 
+
 @app.route("/api/<group_name>/winner")
 @require_group
 def api_winner(group_name):
