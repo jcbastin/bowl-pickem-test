@@ -1,122 +1,178 @@
 import os
-import csv
-import requests
+import re
 import pandas as pd
-from dotenv import load_dotenv
+import requests
 
-load_dotenv()
+# ---------------------------------------------------------
+# ENV + CONFIG
+# ---------------------------------------------------------
 
-API_KEY = os.getenv("CFBD_API_KEY")
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+API_KEY = os.getenv("ODDS_API_KEY")  # must be set in Render
+ODDS_URL = "https://api.the-odds-api.com/v4/sports/americanfootball_ncaaf/odds/"
 
-# Render STORAGE directory
-DISK_DIR = "/opt/render/project/src/storage"
+DISK_DIR = os.getenv("DISK_DIR", "/opt/render/project/src/storage")
 CSV_PATH = os.path.join(DISK_DIR, "games.csv")
 
-def fetch_postseason_lines():
-    url = "https://api.collegefootballdata.com/lines?year=2025&seasonType=postseason"
-    resp = requests.get(url, headers=HEADERS)
+# ---------------------------------------------------------
+# TEAM NAME NORMALIZATION
+# ---------------------------------------------------------
 
-    if resp.status_code != 200:
-        print(f"[ERROR] Failed to fetch spreads. Status {resp.status_code}")
-        return []
+def school_key(name: str) -> str:
+    """
+    Extracts only the school name portion of a team identity by removing mascots.
+    Safe for fuzzy matching pairwise (avoids Arizona vs Arizona State, etc.)
+    """
+    if not name:
+        return ""
+    
+    # lowercase
+    n = name.lower()
 
-    return resp.json()
+    # normalize punctuation
+    n = n.replace("&", "and")
+    n = re.sub(r"[^a-z0-9\s]", "", n)
+
+    tokens = n.split()
+
+    mascots = {
+        "aggies","broncos","buckeyes","tigers","wildcats","panthers","knights",
+        "huskies","spartans","trojans","mountaineers","cougars","cardinal",
+        "bulldogs","jayhawks","rebels","volunteers","gators","ducks","bruins",
+        "longhorns","seminoles","hurricanes","blazers","sun","devils","devil",
+        "gamecocks","pirates","cowboys","raiders","wolfpack","csv","crusaders",
+        "paladins","hog","horned","frogs","patriots","wolverines"
+    }
+
+    # keep only non-mascot tokens
+    filtered = [t for t in tokens if t not in mascots]
+
+    return " ".join(filtered).strip()
 
 
-def extract_best_spread(lines_entry):
-    if "lines" not in lines_entry:
-        return None
+def pair_matches(csv_home, csv_away, api_home, api_away):
+    """
+    Determines if the CSV home/away pair matches the Odds API home/away pair.
+    This prevents incorrect fuzzy matches (e.g., Arizona vs Arizona State).
+    """
+    ch = school_key(csv_home)
+    ca = school_key(csv_away)
+    ah = school_key(api_home)
+    aa = school_key(api_away)
 
-    dk = next((l for l in lines_entry["lines"] if l.get("provider") == "DraftKings" and l.get("spread") is not None), None)
-    if dk:
-        return dk["spread"]
+    # Direct (home/away)
+    if ch == ah and ca == aa:
+        return True
+    
+    # Reversed (away/home)
+    if ch == aa and ca == ah:
+        return True
 
-    bov = next((l for l in lines_entry["lines"] if l.get("provider") == "Bovada" and l.get("spread") is not None), None)
-    if bov:
-        return bov["spread"]
-
-    return None
-
-
-def load_games():
-    return pd.read_csv(CSV_PATH)
+    return False
 
 
-def update_spreads():
-    print("[INFO] Fetching postseason lines...")
-    lines_data = fetch_postseason_lines()
+# ---------------------------------------------------------
+# SPREAD EXTRACTION
+# ---------------------------------------------------------
 
-    if not lines_data:
-        print("[WARN] No lines returned. Exiting.")
+def extract_consensus_spread(bookmakers, home_team, away_team):
+    """
+    Returns the average spread (home spread) across all sportsbooks.
+    Spread is negative if home is favored.
+    """
+    home_key = school_key(home_team)
+    away_key = school_key(away_team)
+
+    spread_values = []
+
+    for b in bookmakers:
+        for m in b.get("markets", []):
+            if m.get("key") != "spreads":
+                continue
+
+            outcomes = m.get("outcomes", [])
+            home_point = None
+            away_point = None
+
+            for o in outcomes:
+                okey = school_key(o["name"])
+                point = o.get("point")
+
+                if okey == home_key:
+                    home_point = point
+                elif okey == away_key:
+                    away_point = point
+
+            if home_point is not None and away_point is not None:
+                spread_values.append(home_point)
+
+    if not spread_values:
+        return ""
+
+    return round(sum(spread_values) / len(spread_values), 1)
+
+
+# ---------------------------------------------------------
+# MAIN SCRIPT
+# ---------------------------------------------------------
+
+def main():
+    print(f"Loading CSV: {CSV_PATH}")
+    games = pd.read_csv(CSV_PATH)
+
+    print("Fetching spreads from The Odds API...")
+    params = {
+        "apiKey": API_KEY,
+        "regions": "us",
+        "markets": "spreads",
+        "oddsFormat": "decimal",
+        "dateFormat": "iso"
+    }
+
+    res = requests.get(ODDS_URL, params=params)
+
+    if res.status_code != 200:
+        print("ERROR fetching Odds API:", res.text)
         return
 
-    # --- DEBUG: PRINT RAW SPREADS RETURNED ---
-    print("\n[DEBUG] Raw spreads returned from CFBD:")
-    for entry in lines_data:
-        gid = entry.get("id")
-        spread = extract_best_spread(entry)
-        print(f"  game_id={gid}, spread={spread}")
-    print("[DEBUG] End raw spread dump\n")
+    odds = res.json()
+    print(f"Retrieved {len(odds)} Odds API games.\n")
 
-    df = load_games()
+    # Process each game in CSV
+    for idx, row in games.iterrows():
+        csv_home = row["home_team"]
+        csv_away = row["away_team"]
 
-    if "cfbd_game_id" not in df.columns:
-        print("[ERROR] cfbd_game_id column missing from games.csv")
-        return
+        matched_game = None
 
-    updated_count = 0
-    # Clean the cfbd_game_id column
-    df["cfbd_game_id"] = pd.to_numeric(df["cfbd_game_id"], errors="coerce").astype("Int64")
+        # Try to find corresponding API game
+        for api_game in odds:
+            api_home = api_game["home_team"]
+            api_away = api_game["away_team"]
 
+            if pair_matches(csv_home, csv_away, api_home, api_away):
+                matched_game = api_game
+                break
 
-    spread_map = {}
-    for entry in lines_data:
-        game_id = entry.get("id")
-        if game_id:
-            best_spread = extract_best_spread(entry)
-            if best_spread is not None:
-                spread_map[game_id] = best_spread
+        if matched_game is None:
+            print(f"[NO MATCH] {csv_away} vs {csv_home}")
+            continue
 
-    print(f"[INFO] Found {len(spread_map)} spreads.")
+        # Extract consensus spread
+        bookmakers = matched_game.get("bookmakers", [])
+        spread_value = extract_consensus_spread(bookmakers, csv_home, csv_away)
 
-    for idx, row in df.iterrows():
-    if pd.isna(row["cfbd_game_id"]):
-        continue
+        if spread_value == "":
+            print(f"[MATCHED but no spread] {csv_away} vs {csv_home}")
+        else:
+            print(f"[UPDATED] {csv_away} vs {csv_home} → spread {spread_value}")
 
-    gid = int(row["cfbd_game_id"])
+        games.at[idx, "spread"] = spread_value
 
-    if gid in spread_map:
-        df.at[idx, "spread"] = spread_map[gid]
-        updated_count += 1
-        print(f"[UPDATE] Game {gid}: spread → {spread_map[gid]}")
-
-
-    # --- DEBUG: PRINT DF BEFORE SAVING ---
-    print("\n[DEBUG] DataFrame spreads before saving:")
-    print(df[["cfbd_game_id", "spread"]].head(20))
-    print("[DEBUG] End DataFrame dump\n")
-
-    # Remove unnamed junk columns
-    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
-
-    # Ensure spread column exists
-    if "spread" not in df.columns:
-        df["spread"] = None
-
-    # Force spread to be the last column
-    cols = [c for c in df.columns if c != "spread"] + ["spread"]
-    df = df[cols]
-
-    print("\n[DEBUG] Final columns:", df.columns.tolist())
-
-    # Save clean CSV
-    df.to_csv(CSV_PATH, index=False)
-
-
-    print(f"[DONE] Updated {updated_count} spreads.")
-    print(f"[DONE] Saved to {CSV_PATH}")
+    # Save final CSV
+    print("\nSaving updated CSV...")
+    games.to_csv(CSV_PATH, index=False)
+    print("DONE.")
 
 
 if __name__ == "__main__":
-    update_spreads()
+    main()
