@@ -32,7 +32,7 @@ game_id,bowl_name,kickoff_datetime,point_value,away_team,home_team,away_rank,hom
 31,Liberty Mutual Music City Bowl,2025-12-30 17:30:00,1,Tennessee,Illinois,,,8-4,8-4,NOT_STARTED,,False,,,401778326,/static/logos/Tennessee.png,/static/logos/Illinois.png,"Nissan Stadium, Nashville, TN",ESPN,
 32,Valero Alamo Bowl,2025-12-30 21:00:00,1,USC,TCU,16.0,,9-3,8-4,NOT_STARTED,,False,,,401778327,/static/logos/USC.png,/static/logos/TCU.png,"Alamodome, San Antonio, TX",ESPN,
 33,ReliaQuest Bowl,2025-12-31 12:00:00,1,Iowa,Vanderbilt,23.0,14,8-4,10-2,NOT_STARTED,,False,,,401778328,/static/logos/Iowa.png,/static/logos/Vanderbilt.png,"Raymond James Stadium, Tampa, FL",ESPN,
-34,Tony the Tiger Sun Bowl,2025-12-31 14:00:00,1,Arizona State,Duke,17.0,,9-3,8-5,NOT_STARTED,,False,,,401778329,/static/logos/Arizona_State.png,/static/logos/Duke.png,"Sun Bowl Stadium, El Paso, TX",CBS,
+34,Tony the Tiger Sun Bowl,2025-12-31 14:00:00,1,Arizona State,Duke,,,9-3,8-5,NOT_STARTED,,False,,,401778329,/static/logos/Arizona_State.png,/static/logos/Duke.png,"Sun Bowl Stadium, El Paso, TX",CBS,
 35,Cheez-It Citrus Bowl,2025-12-31 15:00:00,1,Michigan,Texas,18.0,13,9-3,9-3,NOT_STARTED,,False,,,401778330,/static/logos/Michigan.png,/static/logos/Texas.png,"Camping World Stadium, Orlando, FL",ABC,
 36,SRS Distribution Las Vegas Bowl,2025-12-31 15:30:00,1,Nebraska,Utah,,15,7-5,10-2,NOT_STARTED,,False,,,401778331,/static/logos/Nebraska.png,/static/logos/Utah.png,"Allegiant Stadium, Las Vegas, NV",ESPN,
 37,CFP Quarterfinal - Cotton Bowl,2025-12-31 19:30:00,3,TBD_R1_2,Ohio State,,2,,12-1,NOT_STARTED,,False,,,,/static/logos/TBD_R1_2.png,/static/logos/Ohio_State.png,"AT&T Stadium, Arlington, TX",ESPN,
