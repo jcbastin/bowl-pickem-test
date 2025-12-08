@@ -872,58 +872,6 @@ def api_picks_board(group_name):
     return {"games": games_meta, "users": users_output}
 
 
-# ------------------------------
-# Test route: randomize winners for all incomplete games
-# ------------------------------
-@app.route("/api/test/update_results", methods=["GET", "POST"])
-def api_test_update_results():
-    """
-    Simulates a live results feed by randomly selecting winners
-    for all games that are not yet completed.
-    """
-    import random
-
-    games_path = f"{DISK_DIR}/games.csv"
-
-    # Load games CSV
-    try:
-        df = pd.read_csv(games_path)
-    except Exception as e:
-        return {"error": f"Failed to load games.csv: {e}"}, 500
-
-    updated = 0
-
-    # Loop through games
-    for idx, row in df.iterrows():
-        # Only update games that are not completed
-        completed = str(row.get("completed", "")).lower() == "true"
-        if completed:
-            continue
-
-        away = row.get("away_team", "")
-        home = row.get("home_team", "")
-
-        if away and home:
-            winner = random.choice([away, home])
-        else:
-            winner = ""
-
-        df.at[idx, "winner"] = winner
-        df.at[idx, "completed"] = True
-        updated += 1
-
-    # Save back to CSV
-    try:
-        df.to_csv(games_path, index=False)
-    except Exception as e:
-        return {"error": f"Failed to write games.csv: {e}"}, 500
-
-    return {
-        "status": "ok",
-        "updated_games": updated,
-        "message": f"Updated {updated} games with randomly assigned winners."
-    }
-
 
 # ======================================================
 #               PICK LOCKING
@@ -1037,77 +985,16 @@ def api_winner(group_name):
 # ======================================================
 #               UPDATE SPREADS (CFBD odds)
 # ======================================================
-@app.route("/internal/update_spreads", methods=["POST"])
-def update_spreads():
-    """
-    Updates bowl-game spreads using CFBD /lines endpoint.
-    Only updates rows with a valid cfbd_game_id.
-    """
-
-    CSV_PATH = "/opt/render/project/src/storage/games.csv"
+@app.post("/internal/update_spreads")
+def internal_update_spreads():
+    from update_spreads import update_spreads
 
     try:
-        df = pd.read_csv(CSV_PATH)
+        update_spreads()
+        return {"status": "ok", "message": "Spreads updated successfully"}
     except Exception as e:
-        return {"error": f"Failed to load games.csv: {e}"}, 500
+        return {"status": "error", "message": str(e)}, 500
 
-    # Fetch bowl spreads from CFBD
-    try:
-        resp = requests.get(
-            "https://api.collegefootballdata.com/lines",
-            params={"year": 2025, "seasonType": "postseason"},
-            headers={"Authorization": f"Bearer {os.getenv('CFBD_API_KEY')}"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        odds = resp.json()
-    except Exception as e:
-        return {"error": f"Failed to fetch odds: {e}"}, 500
-
-    # Build a map: cfbd_game_id → spread
-    spread_lookup = {}
-    for game in odds:
-        gid = game.get("id")
-        if not gid:
-            continue
-
-        # Each game has a list of “lines” from different sportsbooks
-        lines = game.get("lines", [])
-        if not lines:
-            continue
-
-        # Pick first provider's line (or you can match "DraftKings")
-        line = lines[0]
-
-        spread = line.get("spread")
-
-        if spread is not None:
-            spread_lookup[int(gid)] = spread
-
-    updated_rows = 0
-
-    # Apply spreads to CSV
-    for idx, row in df.iterrows():
-        cfbd_id = row.get("cfbd_game_id")
-
-        if pd.isna(cfbd_id):
-            continue
-
-        cfbd_id = int(cfbd_id)
-
-        if cfbd_id in spread_lookup:
-            new_spread = spread_lookup[cfbd_id]
-
-            if df.loc[idx, "spread"] != new_spread:
-                df.loc[idx, "spread"] = new_spread
-                updated_rows += 1
-
-    # Save CSV if needed
-    if updated_rows > 0:
-        df.to_csv(CSV_PATH, index=False)
-        return {"status": "updated spreads", "updated_rows": updated_rows}, 200
-
-    return {"status": "no changes"}, 200
 
 
 # ======================================================

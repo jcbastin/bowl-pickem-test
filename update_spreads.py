@@ -1,85 +1,101 @@
 import os
-import pandas as pd
+import csv
 import requests
+import pandas as pd
 from dotenv import load_dotenv
-
-# ---------------------------------------------------------------------
-# CONFIG
-# ---------------------------------------------------------------------
 
 load_dotenv()
 
 API_KEY = os.getenv("CFBD_API_KEY")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-YEAR = 2025  # update if needed
+# Render STORAGE directory
+DISK_DIR = "/opt/render/project/src/storage"
+CSV_PATH = os.path.join(DISK_DIR, "games.csv")
 
-GAMES_PATH = "storage_Seed/games.csv"   # path relative to backend folder
-OUTPUT_PATH = "storage_Seed/games.csv"  # overwrite same file
+def fetch_postseason_lines():
+    """Fetch all postseason lines from CFBD."""
+    url = "https://api.collegefootballdata.com/lines?season=2025&seasonType=postseason"
+    resp = requests.get(url, headers=HEADERS)
 
+    if resp.status_code != 200:
+        print(f"[ERROR] Failed to fetch spreads. Status {resp.status_code}")
+        return []
 
-# ---------------------------------------------------------------------
-# FETCH TEAM RECORDS
-# ---------------------------------------------------------------------
-
-def fetch_team_records(year: int):
-    url = f"https://api.collegefootballdata.com/records?year={year}"
-    print(f"Fetching records for {year}...")
-
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code != 200:
-        raise RuntimeError(f"CFBD error: {response.status_code}")
-
-    data = response.json()
-
-    # Build lookup: "Georgia" → "11-1"
-    team_records = {}
-
-    for team in data:
-        wins = team.get("wins", 0)
-        losses = team.get("losses", 0)
-        team_name = team.get("team")
-
-        if team_name:
-            team_records[team_name] = f"{wins}-{losses}"
-
-    print(f"Loaded {len(team_records)} team records.")
-    return team_records
+    return resp.json()
 
 
-# ---------------------------------------------------------------------
-# APPLY RECORDS TO GAMES.CSV
-# ---------------------------------------------------------------------
+def extract_best_spread(lines_entry):
+    """
+    Extract best spread from lines[] list.
+    Priority:
+        1. DraftKings
+        2. Bovada
+    Returns: float or None
+    """
+    if "lines" not in lines_entry:
+        return None
 
-def update_games_with_records():
-    print("Loading games.csv...")
-    df = pd.read_csv(GAMES_PATH)
+    dk = next((l for l in lines_entry["lines"] if l.get("provider") == "DraftKings" and l.get("spread") is not None), None)
+    if dk:
+        return dk["spread"]
 
-    print("Fetching team records...")
-    record_lookup = fetch_team_records(YEAR)
+    bov = next((l for l in lines_entry["lines"] if l.get("provider") == "Bovada" and l.get("spread") is not None), None)
+    if bov:
+        return bov["spread"]
 
-    # Create new columns if missing
-    if "away_record" not in df.columns:
-        df["away_record"] = ""
-    if "home_record" not in df.columns:
-        df["home_record"] = ""
+    return None
 
-    print("Applying records to each game...")
+
+def load_games():
+    return pd.read_csv(CSV_PATH)
+
+
+def update_spreads():
+    print("[INFO] Fetching postseason lines...")
+    lines_data = fetch_postseason_lines()
+
+    if not lines_data:
+        print("[WARN] No lines returned. Exiting.")
+        return
+
+    df = load_games()
+
+    # Ensure the cfbd_game_id column exists
+    if "cfbd_game_id" not in df.columns:
+        print("[ERROR] cfbd_game_id column missing from games.csv")
+        return
+
+    updated_count = 0
+
+    # Convert cfbd_game_id to numeric if needed
+    df["cfbd_game_id"] = pd.to_numeric(df["cfbd_game_id"], errors="coerce")
+
+    # Build map {game_id: best_spread}
+    spread_map = {}
+    for entry in lines_data:
+        game_id = entry.get("id")
+        if game_id:
+            best_spread = extract_best_spread(entry)
+            if best_spread is not None:
+                spread_map[game_id] = best_spread
+
+    print(f"[INFO] Found {len(spread_map)} spreads.")
+
+    # Update dataframe
     for idx, row in df.iterrows():
-        away = row["away_team"]
-        home = row["home_team"]
+        gid = row["cfbd_game_id"]
+        if gid in spread_map:
+            df.at[idx, "spread"] = spread_map[gid]
+            updated_count += 1
+            print(f"[UPDATE] Game {gid}: spread → {spread_map[gid]}")
 
-        df.at[idx, "away_record"] = record_lookup.get(away, "")
-        df.at[idx, "home_record"] = record_lookup.get(home, "")
+    # Save back to CSV
+    df.to_csv(CSV_PATH, index=False)
 
-    print("Saving updated CSV...")
-    df.to_csv(OUTPUT_PATH, index=False)
-    print("Done! Updated records saved to:", OUTPUT_PATH)
+    print(f"[DONE] Updated {updated_count} spreads.")
+    print(f"[DONE] Saved to {CSV_PATH}")
 
-
-# ---------------------------------------------------------------------
-# RUN
-# ---------------------------------------------------------------------
 
 if __name__ == "__main__":
-    update_games_with_records()
+    update_spreads()
