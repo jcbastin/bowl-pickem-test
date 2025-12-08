@@ -720,6 +720,58 @@ def api_leaderboard(group_name):
 
 
 # ------------------------------
+# Has user submitted picks? 
+# ------------------------------
+@app.route("/<group>/has_submitted_picks", methods=["GET"])
+def has_submitted_picks(group):
+    username = request.args.get("username", "").strip()
+    if not username:
+        return {"submitted": False}, 200
+
+    # Load games for the group
+    games_csv = os.path.join(DISK_DIR, f"{group}_games.csv")
+    if not os.path.exists(games_csv):
+        return {"submitted": False}, 200
+
+    games_df = pd.read_csv(games_csv)
+    total_games = len(games_df)
+
+    # Load picks for this user
+    picks_csv = os.path.join(DISK_DIR, f"{group}_picks.csv")
+    if not os.path.exists(picks_csv):
+        return {"submitted": False}, 200
+
+    picks_df = pd.read_csv(picks_csv)
+
+    # Count user’s picks
+    user_picks = picks_df[picks_df["username"] == username]
+
+    submitted = len(user_picks) == total_games
+
+    return {"submitted": submitted}, 200
+
+@app.route("/api/<group>/<username>/has-submitted", methods=["GET"])
+def api_has_submitted(group, username):
+    picks_path = os.path.join(DISK_DIR, "picks.csv")
+
+    try:
+        df = pd.read_csv(picks_path)
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+    user_picks = df[(df["group_name"] == group) & (df["username"] == username)]
+
+    # Count required picks
+    games_path = os.path.join(DISK_DIR, "games.csv")
+    games_df = pd.read_csv(games_path)
+    required_picks = len(games_df)
+
+    submitted = len(user_picks) == required_picks
+
+    return {"submitted": bool(submitted)}
+
+
+# ------------------------------
 # Picks board — comparison grid across all users in a group
 # ------------------------------
 @app.route("/api/<group_name>/picks_board")
