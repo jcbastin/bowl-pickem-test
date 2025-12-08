@@ -1065,8 +1065,9 @@ def api_get_picks_by_token(token):
 
     group = row.iloc[0]["group"]
     username = row.iloc[0]["username"]
+    name = row.iloc[0].get("name", "")
+    tiebreaker = row.iloc[0].get("tiebreaker", "")
 
-    # reuse existing logic
     picks_df = load_picks()
     picks_df = picks_df[
         (picks_df["group_name"] == group) &
@@ -1076,8 +1077,11 @@ def api_get_picks_by_token(token):
     return jsonify({
         "group": group,
         "username": username,
+        "name": name,
+        "tiebreaker": tiebreaker,
         "picks": picks_df.to_dict(orient="records")
     })
+
 
 
 # ======================================================
