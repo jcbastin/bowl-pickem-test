@@ -985,15 +985,13 @@ def api_winner(group_name):
 # ======================================================
 #               UPDATE SPREADS (CFBD odds)
 # ======================================================
+from update_spreads import update_spreads
+
 @app.post("/internal/update_spreads")
 def internal_update_spreads():
-    from update_spreads import update_spreads
+    result = update_spreads()
+    return {"status": "success", "result": result}, 200
 
-    try:
-        update_spreads()
-        return {"status": "ok", "message": "Spreads updated successfully"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}, 500
 
 
 

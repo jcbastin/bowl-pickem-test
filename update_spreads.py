@@ -16,14 +16,15 @@ PROVIDER_PRIORITY = ["DraftKings", "Bovada"]
 def choose_spread(lines):
     """
     Select spread using priority (DraftKings -> Bovada -> first available).
+    Each 'line' item is a dict with keys: provider, spread, formattedSpread, etc.
     """
-    # Priority providers
+    # Try priority list first
     for provider in PROVIDER_PRIORITY:
         for item in lines:
             if item.get("provider") == provider and item.get("spread") is not None:
                 return item["spread"]
 
-    # Fallback: first available spread
+    # Otherwise choose first available spread
     for item in lines:
         if item.get("spread") is not None:
             return item["spread"]
@@ -31,45 +32,70 @@ def choose_spread(lines):
     return None
 
 
-def main():
-    df = pd.read_csv(CSV_PATH)
-
+def update_spreads():
+    """
+    Fetch CFBD lines for each game in games.csv and update the 'spread' column.
+    This function is designed so Flask can import it cleanly.
+    """
     if CFBD_KEY is None:
-        print("ERROR: CFBD_API_KEY is missing.")
-        return
+        raise RuntimeError("CFBD_API_KEY is missing in environment.")
+
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(f"CSV not found at {CSV_PATH}")
+
+    df = pd.read_csv(CSV_PATH)
 
     updated_count = 0
 
     for idx, row in df.iterrows():
         game_id = row.get("cfbd_game_id")
 
-        # skip missing IDs
+        # Skip if no CFBD ID
         if pd.isna(game_id):
+            print(f"Skipping row {idx}: No CFBD ID")
             continue
 
-        url = f"https://api.collegefootballdata.com/lines?gameId={int(game_id)}"
-        response = requests.get(url, headers=HEADERS)
+        game_id = int(game_id)
+        url = f"https://api.collegefootballdata.com/lines?gameId={game_id}"
+
+        try:
+            response = requests.get(url, headers=HEADERS, timeout=10)
+        except Exception as e:
+            print(f"[{game_id}] Request error: {e}")
+            continue
 
         if response.status_code != 200:
-            print(f"[{game_id}] CFBD ERROR:", response.text)
+            print(f"[{game_id}] CFBD ERROR {response.status_code}: {response.text[:200]}")
             continue
 
         data = response.json()
 
-        if not data or "lines" not in data[0] or not data[0]["lines"]:
-            print(f"[{game_id}] No line data found")
+        if not data:
+            print(f"[{game_id}] No data returned")
             continue
 
-        spread = choose_spread(data[0]["lines"])
+        game_obj = data[0]
 
-        print(f"{row['away_team']} vs {row['home_team']} -> spread: {spread}")
+        if "lines" not in game_obj or not game_obj["lines"]:
+            print(f"[{game_id}] No lines available")
+            continue
+
+        lines = game_obj["lines"]
+
+        spread = choose_spread(lines)
+
+        print(f"{row['away_team']} vs {row['home_team']} -> spread chosen: {spread}")
 
         df.at[idx, "spread"] = spread
         updated_count += 1
 
+    # Write back to CSV
     df.to_csv(CSV_PATH, index=False)
     print(f"Completed spread update for {updated_count} games.")
 
+    return {"updated": updated_count}
 
+
+# Allow running manually from command line
 if __name__ == "__main__":
-    main()
+    update_spreads()
