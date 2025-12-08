@@ -14,7 +14,6 @@ DISK_DIR = "/opt/render/project/src/storage"
 CSV_PATH = os.path.join(DISK_DIR, "games.csv")
 
 def fetch_postseason_lines():
-    """Fetch all postseason lines from CFBD."""
     url = "https://api.collegefootballdata.com/lines?season=2025&seasonType=postseason"
     resp = requests.get(url, headers=HEADERS)
 
@@ -26,13 +25,6 @@ def fetch_postseason_lines():
 
 
 def extract_best_spread(lines_entry):
-    """
-    Extract best spread from lines[] list.
-    Priority:
-        1. DraftKings
-        2. Bovada
-    Returns: float or None
-    """
     if "lines" not in lines_entry:
         return None
 
@@ -59,19 +51,23 @@ def update_spreads():
         print("[WARN] No lines returned. Exiting.")
         return
 
+    # --- DEBUG: PRINT RAW SPREADS RETURNED ---
+    print("\n[DEBUG] Raw spreads returned from CFBD:")
+    for entry in lines_data:
+        gid = entry.get("id")
+        spread = extract_best_spread(entry)
+        print(f"  game_id={gid}, spread={spread}")
+    print("[DEBUG] End raw spread dump\n")
+
     df = load_games()
 
-    # Ensure the cfbd_game_id column exists
     if "cfbd_game_id" not in df.columns:
         print("[ERROR] cfbd_game_id column missing from games.csv")
         return
 
     updated_count = 0
-
-    # Convert cfbd_game_id to numeric if needed
     df["cfbd_game_id"] = pd.to_numeric(df["cfbd_game_id"], errors="coerce")
 
-    # Build map {game_id: best_spread}
     spread_map = {}
     for entry in lines_data:
         game_id = entry.get("id")
@@ -82,7 +78,6 @@ def update_spreads():
 
     print(f"[INFO] Found {len(spread_map)} spreads.")
 
-    # Update dataframe
     for idx, row in df.iterrows():
         gid = row["cfbd_game_id"]
         if gid in spread_map:
@@ -90,7 +85,11 @@ def update_spreads():
             updated_count += 1
             print(f"[UPDATE] Game {gid}: spread → {spread_map[gid]}")
 
-    # Save back to CSV
+    # --- DEBUG: PRINT DF BEFORE SAVING ---
+    print("\n[DEBUG] DataFrame spreads before saving:")
+    print(df[["cfbd_game_id", "spread"]].head(20))
+    print("[DEBUG] End DataFrame dump\n")
+
     df.to_csv(CSV_PATH, index=False)
 
     print(f"[DONE] Updated {updated_count} spreads.")
