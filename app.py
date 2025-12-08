@@ -22,7 +22,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "pickem_secret_key")
 
 if os.getenv("RENDER"):
     DISK_DIR = "/opt/render/project/src/storage"
-    CSV_DIR = "/opt/render/project/src/data"
+    CSV_DIR = DISK_DIR
 else:
     DISK_DIR = "./storage"
     CSV_DIR = "./data"
