@@ -14,7 +14,7 @@ DISK_DIR = "/opt/render/project/src/storage"
 CSV_PATH = os.path.join(DISK_DIR, "games.csv")
 
 def fetch_postseason_lines():
-    url = "https://api.collegefootballdata.com/lines?season=2025&seasonType=postseason"
+    url = "https://api.collegefootballdata.com/lines?year=2025&seasonType=postseason"
     resp = requests.get(url, headers=HEADERS)
 
     if resp.status_code != 200:
