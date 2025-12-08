@@ -1,139 +1,129 @@
-import pandas as pd
+import csv
 import requests
+from datetime import datetime, timedelta
 import os
-import difflib
-
-# ================
-# CONFIG
-# ================
 
 API_KEY = os.getenv("CFBD_API_KEY")
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-YEAR = 2025
+CSV_PATH = "/opt/render/project/src/storage/games.csv"
 
-# Paths (Render vs Local)
-DISK_DIR = os.getenv("DISK_DIR", "./storage")
-CSV_PATH = os.path.join(DISK_DIR, "games.csv")
-
-# =========================================
-# CFP SEEDS (Hardcoded from your bracket)
-# =========================================
-CFP_SEEDS = {
-    "Indiana": 1,
-    "Ohio State": 2,
-    "Georgia": 3,
-    "Texas Tech": 4,
-    "Oregon": 5,
-    "Ole Miss": 6,
-    "Texas A&M": 7,
-    "Oklahoma": 8,
-    "Alabama": 9,
-    "Miami": 10,
-    "Tulane": 11,
-    "James Madison": 12,
-    "JMU": 12,  # common abbreviation
-}
-
-# Utility: Normalize names for fuzzy matching
-def normalize_bowl(name):
-    if not isinstance(name, str):
-        return ""
-    return name.lower().replace("bowl", "").replace("presented by", "").strip()
+# Allowable time difference when matching kickoff times
+TIME_TOLERANCE = timedelta(minutes=10)
 
 
-# Fetch CFBD postseason data
-def fetch_cfbd_games():
-    url = f"https://api.collegefootballdata.com/games?year={YEAR}&seasonType=postseason"
-    r = requests.get(url, headers=HEADERS)
-    r.raise_for_status()
-    return r.json()
+def parse_csv_datetime(dt_str):
+    # CSV uses "2025-12-31 19:30:00"
+    return datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
 
 
-# Match our bowl name → CFBD bowl
-def find_cfbd_match(bowl_name, cfbd_games):
-    target = normalize_bowl(bowl_name)
-
-    cfbd_bowl_names = {}
-    for g in cfbd_games:
-        name = g.get("name") or g.get("bowl_name") or ""
-        cfbd_bowl_names[g["id"]] = normalize_bowl(name)
-
-    # fuzzy match
-    match = difflib.get_close_matches(target, cfbd_bowl_names.values(), n=1, cutoff=0.55)
-    if not match:
-        return None
-
-    matched = match[0]
-
-    for game_id, clean_name in cfbd_bowl_names.items():
-        if clean_name == matched:
-            return game_id
-
-    return None
+def parse_cfbd_datetime(dt_str):
+    # CFBD uses ISO format "2025-12-31T19:30:00.000Z"
+    return datetime.fromisoformat(dt_str.replace("Z", "+00:00")).replace(tzinfo=None)
 
 
-# Update CSV logic
-def update_games_csv(csv_path):
-    print(f"Loading {csv_path} ...")
-    df = pd.read_csv(csv_path)
-    cfbd_games = fetch_cfbd_games()
+def fetch_postseason_games():
+    url = "https://api.collegefootballdata.com/games?year=2025&seasonType=postseason"
+    resp = requests.get(url, headers=HEADERS)
+    resp.raise_for_status()
+    return resp.json()
 
-    cfbd_lookup = {g["id"]: g for g in cfbd_games}
 
-    for idx, row in df.iterrows():
-        bowl = row["bowl_name"]
-        old_home = row["home_team"]
-        old_away = row["away_team"]
+def fetch_postseason_lines():
+    url = "https://api.collegefootballdata.com/lines?year=2025&seasonType=postseason"
+    resp = requests.get(url, headers=HEADERS)
+    resp.raise_for_status()
+    return resp.json()
 
-        print(f"\nProcessing: {bowl}")
 
-        # 1. Try to match with CFBD
-        cfbd_id = find_cfbd_match(bowl, cfbd_games)
-        if cfbd_id:
-            game = cfbd_lookup[cfbd_id]
-            print(f"Matched CFBD ID: {cfbd_id}")
-            df.at[idx, "cfbd_game_id"] = cfbd_id
-        else:
-            print("No CFBD match found. Skipping CFBD updates.")
+def build_lines_lookup(lines_data):
+    """Return a dict: cfbd_game_id → spread"""
+    lookup = {}
+    for game in lines_data:
+        game_id = game.get("id")
+        if not game_id:
+            continue
+        if not game.get("lines"):
             continue
 
-        # 2. If CFBD has actual teams, update them
-        api_home = game.get("home_team")
-        api_away = game.get("away_team")
+        provider_line = game["lines"][0]  # typically DraftKings / default provider
+        lookup[game_id] = provider_line.get("spread")
 
-        if api_home and api_away:
-            teams_matched = {api_home, api_away} == {old_home, old_away}
-
-            if teams_matched:
-                # Correct home/away if swapped
-                if old_home != api_home:
-                    print("Swapping home/away to match CFBD")
-                    df.at[idx, "home_team"] = api_home
-                    df.at[idx, "away_team"] = api_away
-                else:
-                    df.at[idx, "home_team"] = api_home
-                    df.at[idx, "away_team"] = api_away
-
-            # Update records (but preserve if CFBD is missing them)
-            df.at[idx, "home_record"] = game.get("home_record") or row["home_record"]
-            df.at[idx, "away_record"] = game.get("away_record") or row["away_record"]
-
-            # Apply CFP seeds if applicable
-            df.at[idx, "home_rank"] = CFP_SEEDS.get(api_home, game.get("home_rank"))
-            df.at[idx, "away_rank"] = CFP_SEEDS.get(api_away, game.get("away_rank"))
-
-        else:
-            print("CFBD has no teams yet → keeping your manual teams.")
-            # Apply CFP ranks anyway to your manually-entered teams:
-            df.at[idx, "home_rank"] = CFP_SEEDS.get(old_home, row["home_rank"])
-            df.at[idx, "away_rank"] = CFP_SEEDS.get(old_away, row["away_rank"])
-
-    # Write updated file
-    df.to_csv(csv_path, index=False)
-    print(f"\nUpdated bowl data saved to: {csv_path}")
+    return lookup
 
 
-# MAIN EXECUTION (For cron)
+def match_game_by_time(csv_kickoff, cfbd_start):
+    delta = abs(csv_kickoff - cfbd_start)
+    return delta <= TIME_TOLERANCE
+
+
+def main():
+    print("Fetching CFBD postseason games...")
+    cfbd_games = fetch_postseason_games()
+
+    print("Fetching CFBD postseason lines...")
+    cfbd_lines = fetch_postseason_lines()
+    lines_lookup = build_lines_lookup(cfbd_lines)
+
+    # Build list of CFBD games with valid data
+    cfbd_candidates = []
+    for g in cfbd_games:
+        if g.get("id") and g.get("homeTeam") and g.get("awayTeam"):
+            try:
+                start_dt = parse_cfbd_datetime(g["startDate"])
+                cfbd_candidates.append({
+                    "id": g["id"],
+                    "home": g["homeTeam"],
+                    "away": g["awayTeam"],
+                    "start": start_dt,
+                })
+            except:
+                pass
+
+    print(f"Found {len(cfbd_candidates)} real CFBD games.")
+
+    # Read CSV
+    rows = []
+    with open(CSV_PATH, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    updated = False
+    print("Matching CFP + missing games...")
+
+    for row in rows:
+        if row["cfbd_game_id"].strip() != "":
+            continue  # already filled in
+
+        try:
+            csv_time = parse_csv_datetime(row["kickoff_datetime"])
+        except:
+            continue
+
+        # Attempt match based on time
+        for cfbd in cfbd_candidates:
+            if match_game_by_time(csv_time, cfbd["start"]):
+                row["cfbd_game_id"] = str(cfbd["id"])
+                print(f"Matched: game_id {row['game_id']} → {cfbd['id']}")
+                updated = True
+                break
+
+        # Update spread if available
+        if row["cfbd_game_id"] in lines_lookup:
+            row["spread"] = lines_lookup[row["cfbd_game_id"]]
+            updated = True
+
+    # Write updated CSV
+    if updated:
+        print("Writing updated CSV...")
+        with open(CSV_PATH, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+        print("Update complete.")
+    else:
+        print("No updates needed.")
+
+
 if __name__ == "__main__":
-    update_games_csv(CSV_PATH)
+    main()

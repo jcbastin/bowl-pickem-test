@@ -1,103 +1,73 @@
-import pandas as pd
 import requests
+import csv
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
 API_KEY = os.getenv("CFBD_API_KEY")
-HEADERS = {"Authorization": f"Bearer " + API_KEY}
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
-CSV_PATH = "storage_seed/games.csv"
+OUTPUT_FILE = "cfbd_postseason_2025_ids.csv"
 
-# ----------------------------------------------------
-# 1. Fetch all team records for a given year
-# ----------------------------------------------------
-def fetch_records(year):
-    url = "https://api.collegefootballdata.com/records"
-    r = requests.get(url, headers=HEADERS, params={"year": year})
+def fetch_postseason_games():
+    url = (
+        "https://api.collegefootballdata.com/games?"
+        "year=2025&seasonType=postseason"
+    )
+    response = requests.get(url, headers=HEADERS)
 
-    if r.status_code != 200:
-        print("Record API Error:", r.status_code)
-        return {}
+    if response.status_code != 200:
+        raise Exception(f"CFBD API Error {response.status_code}: {response.text}")
 
-    records = {}
-    for team in r.json():
-        name = team["team"]
-        wins = team["total"]["wins"]
-        losses = team["total"]["losses"]
-        records[name] = f"{wins}-{losses}"
-    return records
+    return response.json()
 
+def write_to_csv(games):
+    fieldnames = [
+        "cfbd_game_id",
+        "season",
+        "seasonType",
+        "week",
+        "startDate",
+        "homeTeam",
+        "awayTeam",
+        "homeConference",
+        "awayConference",
+        "homePoints",
+        "awayPoints",
+        "venue",
+        "neutralSite",
+        "conferenceGame"
+    ]
 
-# ----------------------------------------------------
-# 2. Fetch AP/CFP rankings for the season
-# ----------------------------------------------------
-def fetch_rankings(year):
-    url = "https://api.collegefootballdata.com/rankings"
-    r = requests.get(url, headers=HEADERS, params={"year": year})
+    with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
 
-    if r.status_code != 200:
-        print("Rankings API Error:", r.status_code)
-        return {}
+        for g in games:
+            writer.writerow({
+                "cfbd_game_id": g.get("id"),
+                "season": g.get("season"),
+                "seasonType": g.get("seasonType"),
+                "week": g.get("week"),
+                "startDate": g.get("startDate"),
+                "homeTeam": g.get("homeTeam"),
+                "awayTeam": g.get("awayTeam"),
+                "homeConference": g.get("homeConference"),
+                "awayConference": g.get("awayConference"),
+                "homePoints": g.get("homePoints"),
+                "awayPoints": g.get("awayPoints"),
+                "venue": g.get("venue"),
+                "neutralSite": g.get("neutralSite"),
+                "conferenceGame": g.get("conferenceGame"),
+            })
 
-    team_ranks = {}
-
-    data = r.json()
-    for week in data:
-        for poll in week["polls"]:
-            if poll["poll"] == "AP Top 25":  # choose AP, but you can switch
-                for entry in poll["ranks"]:
-                    team_ranks[entry["school"]] = entry["rank"]
-
-    return team_ranks
-
-
-# ----------------------------------------------------
-# Main script
-# ----------------------------------------------------
 def main():
-    df = pd.read_csv(CSV_PATH)
+    print("Fetching 2025 postseason games from CFBD…")
+    games = fetch_postseason_games()
+    print(f"Retrieved {len(games)} games.")
 
-    df["away_team"] = df["away_team"].astype(str)
-    df["home_team"] = df["home_team"].astype(str)
+    print(f"Writing results to {OUTPUT_FILE}…")
+    write_to_csv(games)
 
-    # Determine relevant years from kickoff dates
-    df["year"] = df["kickoff_datetime"].str[:4].astype(int)
-    years = df["year"].unique()
-
-    # Preload all years
-    year_records = {}
-    year_ranks = {}
-
-    for y in years:
-        print(f"Fetching CFBD data for {y}...")
-        year_records[y] = fetch_records(y)
-        year_ranks[y] = fetch_rankings(y)
-
-    # Ensure columns exist
-    for col in ["away_record", "home_record", "away_rank", "home_rank"]:
-        if col not in df.columns:
-            df[col] = ""
-
-    # Fill the CSV
-    for idx, row in df.iterrows():
-        y = row["year"]
-
-        away = row["away_team"]
-        home = row["home_team"]
-
-        df.loc[idx, "away_record"] = year_records[y].get(away, "")
-        df.loc[idx, "home_record"] = year_records[y].get(home, "")
-
-        df.loc[idx, "away_rank"] = year_ranks[y].get(away, "")
-        df.loc[idx, "home_rank"] = year_ranks[y].get(home, "")
-
-        print(f"Updated {row['bowl_name']} → {away} / {home}")
-
-    df.drop(columns=["year"], inplace=True)
-    df.to_csv(CSV_PATH, index=False)
-    print("DONE — updated:", CSV_PATH)
-
+    print("Done. Open the CSV and spot-check the IDs and teams.")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,72 @@
+cfbd_game_id,season,seasonType,week,startDate,homeTeam,awayTeam,homeConference,awayConference,homePoints,awayPoints,venue,neutralSite,conferenceGame
+401778123,2025,postseason,1,2025-12-13T17:00:00.000Z,Prairie View A&M,South Carolina State,SWAC,MEAC,,,Mercedes-Benz Stadium,True,False
+401778302,2025,postseason,1,2025-12-14T01:00:00.000Z,Washington,Boise State,Big Ten,Mountain West,,,SoFi Stadium,True,False
+401778303,2025,postseason,1,2025-12-17T02:00:00.000Z,Jacksonville State,Troy,Conference USA,Sun Belt,,,Cramton Bowl,True,False
+401778304,2025,postseason,1,2025-12-17T22:00:00.000Z,South Florida,Old Dominion,American Athletic,Sun Belt,,,Camping World Stadium,True,False
+401778305,2025,postseason,1,2025-12-18T01:30:00.000Z,Delaware,Louisiana,Conference USA,Sun Belt,,,Hancock Whitney Stadium,True,False
+401838053,2025,postseason,1,2025-12-19T02:00:00.000Z,Arkansas State,Missouri State,Sun Belt,Conference USA,,,Ford Center At The Star,True,False
+401778306,2025,postseason,1,2025-12-19T16:00:00.000Z,Western Michigan,Kennesaw State,Mid-American,Conference USA,,,Brooks Stadium (SC),True,False
+401778307,2025,postseason,1,2025-12-19T19:30:00.000Z,NC State,Memphis,ACC,American Athletic,,,Raymond James Stadium,True,False
+401779840,2025,postseason,1,2025-12-20T01:00:00.000Z,Oklahoma,Alabama,SEC,SEC,,,"Memorial Stadium (Norman, OK)",False,True
+401779841,2025,postseason,1,2025-12-20T17:00:00.000Z,Texas A&M,Miami,SEC,ACC,,,Kyle Field,False,False
+401779842,2025,postseason,1,2025-12-20T20:30:00.000Z,Ole Miss,Tulane,SEC,American Athletic,,,Vaught-Hemingway Stadium,False,False
+401779843,2025,postseason,1,2025-12-21T00:30:00.000Z,Oregon,James Madison,Big Ten,Sun Belt,,,Autzen Stadium,False,False
+401778308,2025,postseason,1,2025-12-22T19:00:00.000Z,Utah State,Washington State,Mountain West,Pac-12,,,Albertsons Stadium,True,False
+401778309,2025,postseason,1,2025-12-23T19:00:00.000Z,Louisville,Toledo,ACC,Mid-American,,,FAU Stadium,True,False
+401778310,2025,postseason,1,2025-12-23T22:30:00.000Z,Southern Miss,Western Kentucky,Sun Belt,Conference USA,,,Caesars Superdome,True,False
+401778311,2025,postseason,1,2025-12-24T02:00:00.000Z,Ohio,UNLV,Mid-American,Mountain West,,,Ford Center At The Star,True,False
+401778312,2025,postseason,1,2025-12-25T01:00:00.000Z,Hawai'i,California,Mountain West,ACC,,,Clarence T.C. Ching Athletics Complex,False,False
+401778313,2025,postseason,1,2025-12-26T18:00:00.000Z,Northwestern,Central Michigan,Big Ten,Mid-American,,,Ford Field,True,False
+401778314,2025,postseason,1,2025-12-26T21:30:00.000Z,Minnesota,New Mexico,Big Ten,Mountain West,,,Chase Field,True,False
+401778315,2025,postseason,1,2025-12-27T01:00:00.000Z,UTSA,Florida International,American Athletic,Conference USA,,,Gerald J. Ford Stadium,True,False
+401778316,2025,postseason,1,2025-12-27T16:00:00.000Z,East Carolina,Pittsburgh,American Athletic,ACC,,,Navy-Marine Corps Memorial Stadium,True,False
+401778317,2025,postseason,1,2025-12-27T17:00:00.000Z,Clemson,Penn State,ACC,Big Ten,,,Yankee Stadium,True,False
+401778318,2025,postseason,1,2025-12-27T19:15:00.000Z,Army,UConn,American Athletic,FBS Independents,,,Fenway Park,True,False
+401778319,2025,postseason,1,2025-12-27T20:30:00.000Z,BYU,Georgia Tech,Big 12,ACC,,,Camping World Stadium,True,False
+401778320,2025,postseason,1,2025-12-27T21:30:00.000Z,Fresno State,Miami (OH),Mountain West,Mid-American,,,Arizona Stadium,True,False
+401778321,2025,postseason,1,2025-12-27T22:45:00.000Z,San Diego State,North Texas,Mountain West,American Athletic,,,University Stadium (NM),True,False
+401778322,2025,postseason,1,2025-12-28T00:30:00.000Z,Missouri,Virginia,SEC,ACC,,,EverBank Stadium,True,False
+401778323,2025,postseason,1,2025-12-28T02:15:00.000Z,Houston,LSU,Big 12,SEC,,,NRG Stadium,True,False
+401778325,2025,postseason,1,2025-12-30T19:00:00.000Z,Louisiana Tech,Coastal Carolina,Conference USA,Sun Belt,,,Independence Stadium,True,False
+401778326,2025,postseason,1,2025-12-30T22:30:00.000Z,Illinois,Tennessee,Big Ten,SEC,,,Nissan Stadium,True,False
+401778327,2025,postseason,1,2025-12-31T02:00:00.000Z,TCU,USC,Big 12,Big Ten,,,Alamodome,True,False
+401778328,2025,postseason,1,2025-12-31T17:00:00.000Z,Vanderbilt,Iowa,SEC,Big Ten,,,Raymond James Stadium,True,False
+401778329,2025,postseason,1,2025-12-31T19:00:00.000Z,Duke,Arizona State,ACC,Big 12,,,Sun Bowl,True,False
+401778330,2025,postseason,1,2025-12-31T20:00:00.000Z,Texas,Michigan,SEC,Big Ten,,,Camping World Stadium,True,False
+401778331,2025,postseason,1,2025-12-31T20:30:00.000Z,Utah,Nebraska,Big 12,Big Ten,,,Allegiant Stadium,True,False
+401778332,2025,postseason,1,2026-01-02T18:00:00.000Z,Texas State,Rice,Sun Belt,American Athletic,,,Amon G. Carter Stadium,True,False
+401778333,2025,postseason,1,2026-01-02T21:30:00.000Z,Cincinnati,Navy,Big 12,American Athletic,,,Simmons Bank Liberty Stadium,True,False
+401831583,2025,postseason,1,2026-01-03T01:00:00.000Z,SMU,Arizona,ACC,Big 12,,,Snapdragon Stadium,True,False
+401778334,2025,postseason,1,2026-01-03T01:00:00.000Z,Mississippi State,Wake Forest,SEC,ACC,,,Bank of America Stadium,True,False
+401834618,2025,postseason,13,2025-11-22T17:00:00.000Z,Framingham State,Lagrange College,MSCAC,USA South,21,24,Bowditch Field,False,False
+401834615,2025,postseason,13,2025-11-22T17:00:00.000Z,Muhlenberg,Union (NY),Centennial,Liberty League,34,26,Scotty Wood Stadium,False,False
+401834635,2025,postseason,13,2025-11-22T17:00:00.000Z,Kutztown University,Bentley,Pennsylvania State Athletic,Northeast 10,52,0,Andre Reed Stadium,False,False
+401834624,2025,postseason,13,2025-11-22T17:00:00.000Z,Springfield,Cortland,NEWMAC,Empire 8,21,7,Stagg Field,False,False
+401834619,2025,postseason,13,2025-11-22T17:00:00.000Z,Hanover College,Grove City College,Heartland,Presidents',23,15,Alumni Stadium (IN),False,False
+401834623,2025,postseason,13,2025-11-22T17:00:00.000Z,Susquehanna,Washington & Jefferson,Landmark Conference,Presidents',38,32,Amos Alonzo Stagg Field (PA),False,False
+401834637,2025,postseason,13,2025-11-22T18:00:00.000Z,Johnson C Smith,Frostburg State,CIAA,Mountain East,7,21,Irwin Belk Complex,False,False
+401834696,2025,postseason,13,2025-11-22T18:00:00.000Z,Findlay,Minnesota State Mankato,Great Midwest Athletic,Northern Sun,14,37,Donnell Stadium,False,False
+401834639,2025,postseason,13,2025-11-22T18:00:00.000Z,Albany State GA,Valdosta State,SIAC,Gulf South,35,30,Albany State University Coliseum,False,False
+401834636,2025,postseason,13,2025-11-22T18:00:00.000Z,Indiana-Pennsylvania,Assumption,Pennsylvania State Athletic,Northeast 10,20,23,George P. Miller Stadium,False,False
+401834642,2025,postseason,13,2025-11-22T18:00:00.000Z,Newberry,Kentucky State,South Atlantic,SIAC,45,24,Setzler Field,False,False
+401834621,2025,postseason,13,2025-11-22T18:00:00.000Z,Wheaton,Crown College,CCIW,Upper Midwest,76,14,McCully Stadium,False,False
+401834675,2025,postseason,13,2025-11-22T18:00:00.000Z,Ferris State,Northwood (MI),GLIAC,Great Midwest Athletic,65,14,Top Taggart Field,False,False
+401834620,2025,postseason,13,2025-11-22T18:00:00.000Z,Concordia-Wisconsin,Coe College,NACC,American Rivers,7,44,Tomasini Stadium,False,False
+401834695,2025,postseason,13,2025-11-22T18:00:00.000Z,Ashland,Minnesota Duluth,Great Midwest Athletic,Northern Sun,32,7,Jack Miller Stadium,False,False
+401834638,2025,postseason,13,2025-11-22T18:00:00.000Z,Virginia Union,PennWest California,CIAA,Pennsylvania State Athletic,24,27,Hovey Field,False,False
+401834715,2025,postseason,13,2025-11-22T19:00:00.000Z,Harding University,Northwest Missouri St,Great American,Mid America,38,16,First Security Stadium,False,False
+401834655,2025,postseason,13,2025-11-22T19:00:00.000Z,Indianapolis,Truman State,Great Lakes,Great Lakes,57,14,Key Stadium,False,True
+401834640,2025,postseason,13,2025-11-22T19:00:00.000Z,Wingate,Benedict College,South Atlantic,SIAC,24,25,Irwin Belk Stadium,False,False
+401834716,2025,postseason,13,2025-11-22T19:00:00.000Z,Pittsburg St,Chadron St,Mid America,Rocky Mountain,21,17,Carnie Smith Stadium,False,False
+401834641,2025,postseason,13,2025-11-22T19:00:00.000Z,West Florida,North Greenville,Gulf South,Carolinas,43,19,Pen-Air Field,False,False
+401834718,2025,postseason,13,2025-11-22T20:00:00.000Z,CSU Pueblo,UT Permian Basin,Rocky Mountain,Lone Star,24,37,Neta and Eddie DeRose ThunderBowl,False,False
+401834622,2025,postseason,13,2025-11-22T20:00:00.000Z,Whitworth,Chapman,Northwest,So. Cal.,16,18,The Pine Bowl,False,False
+401834717,2025,postseason,13,2025-11-22T21:00:00.000Z,Central Washington,Western Colorado,Lone Star,Rocky Mountain,20,27,Tomlinson Stadium,False,False
+401834625,2025,postseason,14,2025-11-29T17:00:00.000Z,Hope College,Wisconsin-Lacrosse,Michigan,Wisconsin,7,9,Ray and Sue Smith Stadium,False,False
+401834629,2025,postseason,14,2025-11-29T17:00:00.000Z,Franklin & Marshall,Eastern University,Centennial,Mid Atlantic,24,28,Shadek Stadium,False,False
+401834630,2025,postseason,14,2025-11-29T17:00:00.000Z,Salisbury,Endicott College,New Jersey,Commonwealth Coast,35,28,Sea Gull Stadium,False,False
+401834616,2025,postseason,14,2025-11-29T17:00:00.000Z,John Carroll University,Randolph-Macon,Ohio,Old Dominion,35,6,Don Shula Stadium at Wasmer Field,False,False
+401834628,2025,postseason,14,2025-11-29T18:00:00.000Z,Saint John's (MN),Monmouth (IL),Minnesota,Midwest,49,15,Clemens Stadium,False,False
+401834626,2025,postseason,14,2025-11-29T18:00:00.000Z,Wisconsin-Platteville,Alma,Wisconsin,Michigan,24,7,Ralph E. Davis Pioneer Stadium,False,False
+401834617,2025,postseason,14,2025-11-29T18:00:00.000Z,Trinity University TX,Hardin-Simmons,Southern Athletic,American Southwest,34,24,Trinity University Stadium,False,False
+401834627,2025,postseason,14,2025-11-29T18:00:00.000Z,Wisconsin-Whitewater,Depauw,Wisconsin,North Coast,23,26,Perkins Stadium,False,False
