@@ -1083,6 +1083,12 @@ def api_get_picks_by_token(token):
     })
 
 
+# ======================================================
+#   SHIM ROUTE (FRONTEND-FRIENDLY PERMALINK HANDLER)
+# ======================================================
+@app.route('/p/<token>')
+def api_get_picks_by_token_shim(token):
+    return api_get_picks_by_token(token)
 
 # ======================================================
 #               LOGOS / STATIC FILES
