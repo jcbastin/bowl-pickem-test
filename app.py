@@ -492,70 +492,80 @@ def api_confirm_picks(group_name):
         except Exception:
             users_df.loc[mask, "tiebreaker"] = tiebreaker
 
-    save_users(users_df)
+save_users(users_df)
 
-    # ======================================================
-    # 3. Save final picks to picks.csv
-    # ======================================================
-    picks_path = f"{DISK_DIR}/picks.csv"
-    games_df = load_games()
-    games_df["game_id"] = games_df["game_id"].astype(str)
+# ======================================================
+# 2b. ALSO save tiebreaker in tiebreakers.csv (needed for picks board)
+# ======================================================
+if tiebreaker is not None:
+    try:
+        save_tiebreaker(group_name, username, name, int(tiebreaker))
+    except Exception:
+        save_tiebreaker(group_name, username, name, tiebreaker)
 
-    if os.path.exists(picks_path):
-        picks_df = pd.read_csv(picks_path)
-    else:
-        picks_df = pd.DataFrame(
-            columns=[
-                "group_name",
-                "username",
-                "name",
-                "game_id",
-                "selected_team",
-                "point_value",
-            ]
-        )
+# ======================================================
+# 3. Save final picks to picks.csv
+# ======================================================
+picks_path = f"{DISK_DIR}/picks.csv"
+games_df = load_games()
+games_df["game_id"] = games_df["game_id"].astype(str)
 
-    # Remove user's previous picks (if any)
-    picks_df = picks_df[
-        ~(
-            (picks_df["group_name"].str.lower() == group_name.lower()) &
-            (picks_df["username"].str.lower() == username.lower())
-        )
-    ]
-
-    # Create new pick rows
-    new_rows = []
-    for game_id, selected_team in picks.items():
-        game_row = games_df[games_df["game_id"] == str(game_id)]
-        if game_row.empty:
-            continue
-
-        point_val = int(game_row.iloc[0]["point_value"])
-
-        new_rows.append({
-            "group_name": group_name,
-            "username": username,
-            "name": name or username,
-            "game_id": str(game_id),
-            "selected_team": selected_team,
-            "point_value": point_val,
-        })
-
-    if new_rows:
-        picks_df = pd.concat([picks_df, pd.DataFrame(new_rows)], ignore_index=True)
-
-    # Deduplicate safety (should not be necessary but safe)
-    picks_df = picks_df.drop_duplicates(
-        subset=["group_name", "username", "game_id"],
-        keep="last",
+if os.path.exists(picks_path):
+    picks_df = pd.read_csv(picks_path)
+else:
+    picks_df = pd.DataFrame(
+        columns=[
+            "group_name",
+            "username",
+            "name",
+            "game_id",
+            "selected_team",
+            "point_value",
+        ]
     )
 
-    picks_df.to_csv(picks_path, index=False)
+# Remove user's previous picks (if any)
+picks_df = picks_df[
+    ~(
+        (picks_df["group_name"].str.lower() == group_name.lower()) &
+        (picks_df["username"].str.lower() == username.lower())
+    )
+]
 
-    # ======================================================
-    # 4. Return success and user's permanent token
-    # ======================================================
-    return {"success": True, "token": user_token}, 200
+# Create new pick rows
+new_rows = []
+for game_id, selected_team in picks.items():
+    game_row = games_df[games_df["game_id"] == str(game_id)]
+    if game_row.empty:
+        continue
+
+    point_val = int(game_row.iloc[0]["point_value"])
+
+    new_rows.append({
+        "group_name": group_name,
+        "username": username,
+        "name": name or username,
+        "game_id": str(game_id),
+        "selected_team": selected_team,
+        "point_value": point_val,
+    })
+
+if new_rows:
+    picks_df = pd.concat([picks_df, pd.DataFrame(new_rows)], ignore_index=True)
+
+# Deduplicate safety
+picks_df = picks_df.drop_duplicates(
+    subset=["group_name", "username", "game_id"],
+    keep="last",
+)
+
+picks_df.to_csv(picks_path, index=False)
+
+# ======================================================
+# 4. Return success and user's permanent token
+# ======================================================
+return {"success": True, "token": user_token}, 200
+
 
 
 # ======================================================
