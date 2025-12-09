@@ -384,33 +384,40 @@ def api_create_user():
     if not group or not username or not name:
         return {"error": "Missing required fields"}, 400
 
-    # Load groups to validate
+    # Load groups to validate + normalize case
     groups_path = os.path.join(DISK_DIR, "groups.csv")
     groups_df = pd.read_csv(groups_path)
 
-    if group.lower() not in groups_df["group_name"].str.lower().values:
+    # Build lowercase → canonical name mapping
+    group_map = {g.lower(): g for g in groups_df["group_name"].astype(str)}
+
+    # Case-insensitive lookup
+    if group.lower() not in group_map:
         return {"error": f"Group '{group}' does not exist"}, 400
+
+    # Canonical group name (correct casing from CSV)
+    canonical_group = group_map[group.lower()]
 
     # Load picks.csv to ensure username is not already taken
     picks_path = os.path.join(DISK_DIR, "picks.csv")
     picks_df = pd.read_csv(picks_path)
 
     existing = picks_df[
-        (picks_df["group_name"] == group) &
-        (picks_df["username"] == username)
+        (picks_df["group_name"].str.lower() == canonical_group.lower()) &
+        (picks_df["username"].str.lower() == username.lower())
     ]
 
     if not existing.empty:
         return {"error": "Username already exists"}, 400
 
-    # Create the user by writing a placeholder row for every game
+    # Create placeholder pick rows for every game
     games_path = os.path.join(DISK_DIR, "games.csv")
     games_df = pd.read_csv(games_path)
 
     new_rows = []
     for _, game in games_df.iterrows():
         new_rows.append({
-            "group_name": group,
+            "group_name": canonical_group,  # use canonical name
             "username": username,
             "name": name,
             "game_id": game["game_id"],
@@ -418,7 +425,7 @@ def api_create_user():
             "point_value": game["point_value"]
         })
 
-    # Append to picks.csv
+    # Append rows to picks.csv
     new_df = pd.DataFrame(new_rows)
     updated_df = pd.concat([picks_df, new_df], ignore_index=True)
     updated_df.to_csv(picks_path, index=False)
