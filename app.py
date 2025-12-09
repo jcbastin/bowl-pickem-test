@@ -331,12 +331,6 @@ def get_group_pot(group_name):
 
     return {"pot": pot, "num_players": len(unique_users)}
 
-@app.get("/api/<group_name>/check_username")
-@require_group
-def api_check_username_query(group_name):
-    username = request.args.get("username", "").strip()
-    return api_check_username(group_name, username)
-
 
 # ------------------------------
 # Get bowl games
