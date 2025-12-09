@@ -396,59 +396,54 @@ def api_save_session_picks(group_name):
 # Create user (pre-seed picks.csv rows)
 # ------------------------------
 @app.route("/api/<group_name>/create-user", methods=["POST"])
+@require_group
 def api_create_user(group_name):
-    data = request.get_json() or {}
+    data = request.get_json()
     username = data.get("username", "").strip()
     name = data.get("name", "").strip()
 
     if not username or not name:
-        return {"error": "Missing required fields"}, 400
+        return {"error": "Missing username or name"}, 400
 
-    # Normalize group via groups.csv
-    group_name = group_name.strip()
-    groups_df = pd.read_csv(GROUPS_PATH)
-    group_map = {g.lower(): g for g in groups_df["group_name"].astype(str)}
-
-    if group_name.lower() not in group_map:
-        return {"error": f"Group '{group_name}' does not exist"}, 400
-
-    canonical_group = group_map[group_name.lower()]
-
-    # Load users.csv
     users_df = load_users()
+    picks_df = load_picks()
 
-    # Check uniqueness within the same group (case-insensitive)
-    existing = users_df[
-        (users_df["group_name"].str.lower() == canonical_group.lower()) &
-        (users_df["username"].str.lower() == username.lower())
+    group_lower = group_name.lower()
+    username_lower = username.lower()
+
+    existing_user = users_df[
+        (users_df["group_name"].str.lower() == group_lower) &
+        (users_df["username"].str.lower() == username_lower)
     ]
 
-    if not existing.empty:
-        return {"error": "Username already exists"}, 400
+    # CASE 1: Username does not exist → create new user
+    if existing_user.empty:
+        token = generate_token()
+        new_row = {
+            "group_name": group_name,
+            "username": username,
+            "name": name,
+            "token": token
+        }
 
-    # Generate a token for this user
-    token = str(uuid.uuid4())
+        users_df = pd.concat([users_df, pd.DataFrame([new_row])], ignore_index=True)
+        save_users(users_df)
 
-    # Create new user row
-    new_user = {
-        "group_name": canonical_group,
-        "username": username,
-        "name": name,
-        "token": token,
-        "has_submitted": False,
-        "tiebreaker": None,
-    }
+        return {"token": token, "new": True}, 200
 
-    # Append to users.csv
-    users_df = pd.concat([users_df, pd.DataFrame([new_user])], ignore_index=True)
-    save_users(users_df)
+    # CASE 2: Username DOES exist → check picks
+    user_picks = picks_df[
+        (picks_df["group_name"].str.lower() == group_lower) &
+        (picks_df["username"].str.lower() == username_lower)
+    ]
 
-    # Return token for navigation
-    return {
-        "success": True,
-        "message": "User created",
-        "token": token
-    }, 200
+    # CASE 2a: User submitted picks → block new creation
+    if len(user_picks) > 0:
+        return {"error": "Username already exists and has submitted picks"}, 400
+
+    # CASE 2b: User exists but no picks → allow resume
+    token = existing_user.iloc[0]["token"]
+    return {"token": token, "new": False, "resume": True}, 200
 
 
 
