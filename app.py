@@ -144,11 +144,17 @@ ALLOWED_GROUPS = {g.lower(): g for g in load_groups()}  # map lower → real nam
 def require_group(f):
     @wraps(f)
     def wrapper(group_name, *args, **kwargs):
-        key = group_name.replace("%20", " ").lower()
-        if key not in ALLOWED_GROUPS:
-            return {"error": f"Unknown group '{group_name}'"}, 404
-        real_name = ALLOWED_GROUPS[key]
-        return f(real_name, *args, **kwargs)
+        group_key = group_name.lower()
+
+        # Make sure group exists
+        if group_key not in ALLOWED_GROUPS:
+            print(f"[ERROR] Invalid group requested: {group_name}", flush=True)
+            return {"error": "invalid_group"}, 404
+
+        # Normalize to canonical case (e.g., "Test")
+        real_group = ALLOWED_GROUPS[group_key]
+
+        return f(real_group, *args, **kwargs)
 
     return wrapper
 
