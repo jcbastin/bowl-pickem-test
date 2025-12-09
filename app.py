@@ -887,6 +887,60 @@ def api_picks_board(group_name):
     print("Returning picks board successfully.", flush=True)
     return {"games": games_meta, "users": users_output}
 
+# ------------------------------
+# Check Username (full logic)
+# ------------------------------
+@app.get("/api/<group_name>/check_username/<username>")
+@require_group
+def api_check_username(group_name, username):
+    username_clean = username.strip().lower()
+    if not username_clean:
+        return {"available": False, "error": "missing_username"}, 400
+
+    users_df = load_users()
+    picks_df = load_picks()
+
+    # Filter this group only
+    group_lower = group_name.lower()
+
+    user_row = users_df[
+        (users_df["group_name"].str.lower() == group_lower) &
+        (users_df["username"].str.lower() == username_clean)
+    ]
+
+    # 1. USERNAME DOES NOT EXIST
+    if user_row.empty:
+        return {
+            "available": True,
+            "exists": False,
+            "has_submitted": False,
+        }
+
+    # If we get here, username exists
+    username_exists = True
+
+    # Check their picks
+    user_picks = picks_df[
+        (picks_df["group_name"].str.lower() == group_lower) &
+        (picks_df["username"].str.lower() == username_clean)
+    ]
+
+    has_submitted = len(user_picks) > 0
+
+    # 2. USER EXISTS + HAS SUBMITTED → DISALLOW
+    if has_submitted:
+        return {
+            "available": False,
+            "exists": True,
+            "has_submitted": True,
+        }
+
+    # 3. USER EXISTS + HAS NOT SUBMITTED → ALLOW RESUME
+    return {
+        "available": True,
+        "exists": True,
+        "has_submitted": False,
+    }
 
 
 # ======================================================
