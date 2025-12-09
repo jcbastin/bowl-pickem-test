@@ -600,18 +600,46 @@ def api_get_tiebreaker(group_name):
 def api_check_username(group_name):
     username = request.args.get("username", "").strip()
     if not username:
-        return {"available": False, "error": "Missing username"}, 400
+        return {"available": False, "reason": "missing"}, 400
 
-    # Load users.csv
     users_df = load_users()
+    picks_df = load_picks()
 
-    # Case-insensitive lookup for username within this group
-    exists = users_df[
-        (users_df["group_name"].str.lower() == group_name.lower()) &
-        (users_df["username"].str.lower() == username.lower())
+    # Normalize group for lookup
+    group_lower = group_name.lower()
+    username_lower = username.lower()
+
+    # Check if username exists in this group
+    existing_user = users_df[
+        (users_df["group_name"].str.lower() == group_lower) &
+        (users_df["username"].str.lower() == username_lower)
     ]
 
-    return {"available": exists.empty}, 200
+    # CASE 1: Username does not exist → "new"
+    if existing_user.empty:
+        return {
+            "available": True,
+            "reason": "new"
+        }, 200
+
+    # Username exists → check if they have submitted picks
+    user_picks = picks_df[
+        (picks_df["group_name"].str.lower() == group_lower) &
+        (picks_df["username"].str.lower() == username_lower)
+    ]
+
+    # CASE 2: User has submitted picks → block
+    if len(user_picks) > 0:
+        return {
+            "available": False,
+            "reason": "submitted"
+        }, 200
+
+    # CASE 3: User exists but no picks → allow resume
+    return {
+        "available": True,
+        "reason": "exists_no_picks"
+    }, 200
 
 
 
