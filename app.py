@@ -567,7 +567,6 @@ picks_df.to_csv(picks_path, index=False)
 return {"success": True, "token": user_token}, 200
 
 
-
 # ======================================================
 # GET TIEBREAKER
 # ======================================================
