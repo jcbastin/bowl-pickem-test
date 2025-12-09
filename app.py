@@ -896,75 +896,48 @@ def api_picks_board(group_name):
 # ------------------------------
 # Check Username (full logic)
 # ------------------------------
-@app.get("/api/<group_name>/check_username/<username>")
+# ---- Correct username check (matches frontend EXACTLY) ----
+@app.get("/api/<group_name>/check_username")
 @require_group
-def api_check_username(group_name, username):
-    username_clean = username.strip().lower()
-    if not username_clean:
-        return {"available": False, "error": "missing_username"}, 400
+def api_check_username(group_name):
+    username = request.args.get("username", "").strip().lower()
+    if not username:
+        return {"available": False, "reason": None}, 400
 
     users_df = load_users()
     picks_df = load_picks()
-
-    # Filter this group only
     group_lower = group_name.lower()
 
+    # Look for username
     user_row = users_df[
         (users_df["group_name"].str.lower() == group_lower) &
-        (users_df["username"].str.lower() == username_clean)
+        (users_df["username"].str.lower() == username)
     ]
 
-    # 1. USERNAME DOES NOT EXIST
+    # USERNAME DOES NOT EXIST
     if user_row.empty:
         return {
             "available": True,
-            "exists": False,
-            "has_submitted": False,
+            "reason": "new"
         }
 
-    # If we get here, username exists
-    username_exists = True
-
-    # Check their picks
+    # Username exists → check picks
     user_picks = picks_df[
         (picks_df["group_name"].str.lower() == group_lower) &
-        (picks_df["username"].str.lower() == username_clean)
+        (picks_df["username"].str.lower() == username)
     ]
 
-    has_submitted = len(user_picks) > 0
-
-    # 2. USER EXISTS + HAS SUBMITTED → DISALLOW
-    if has_submitted:
+    # USER HAS SUBMITTED → BLOCK
+    if len(user_picks) > 0:
         return {
             "available": False,
-            "exists": True,
-            "has_submitted": True,
+            "reason": "submitted"
         }
 
-    # 3. USER EXISTS + HAS NOT SUBMITTED → ALLOW RESUME
+    # USER EXISTS BUT NO PICKS SUBMITTED → ALLOW RESUME
     return {
         "available": True,
-        "exists": True,
-        "has_submitted": False,
-    }
-
-
-# ======================================================
-#               PICK LOCKING
-# ======================================================
-@app.route("/pick-lock-status")
-def api_pick_lock_status():
-    return {
-        "picks_locked": picks_locked(),
-        "deadline_iso": PICK_DEADLINE_PST.isoformat()
-    }
-
-@app.route("/api/<group_name>/pick-lock-status")
-@require_group
-def api_group_pick_lock_status(group_name):
-    return {
-        "picks_locked": picks_locked(),
-        "deadline_iso": PICK_DEADLINE_PST.isoformat()
+        "reason": "exists_no_picks"
     }
 
 
