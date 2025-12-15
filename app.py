@@ -1005,6 +1005,24 @@ def api_check_username(group_name):
         "stored_name": stored_name
     }
 
+# ------------------------------
+# List users for recovery (read-only)
+# ------------------------------
+@app.get("/api/<group_name>/users")
+@require_group
+def api_list_users(group_name):
+    users_df = load_users()
+
+    group_lower = group_name.lower()
+
+    group_users = users_df[
+        users_df["group_name"].str.lower() == group_lower
+    ][["username", "name"]]
+
+    # Defensive: drop duplicates
+    group_users = group_users.drop_duplicates()
+
+    return group_users.to_dict(orient="records")
 
 
 # ======================================================
