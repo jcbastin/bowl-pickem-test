@@ -1005,6 +1005,36 @@ def api_check_username(group_name):
         "stored_name": stored_name
     }
 
+@app.get("/api/<group_name>/users_with_picks")
+@require_group
+def api_users_with_picks(group_name):
+    users_df = load_users()
+    picks_df = load_picks()
+
+    group_lower = group_name.lower()
+
+    # Users in this group
+    users_df = users_df[
+        users_df["group_name"].str.lower() == group_lower
+    ][["username", "name"]]
+
+    # Usernames that actually have picks
+    picked_usernames = set(
+        picks_df[
+            picks_df["group_name"].str.lower() == group_lower
+        ]["username"].str.lower()
+    )
+
+    # Filter users to only those with picks
+    users_with_picks = users_df[
+        users_df["username"].str.lower().isin(picked_usernames)
+    ]
+
+    # Defensive: drop duplicates
+    users_with_picks = users_with_picks.drop_duplicates()
+
+    return users_with_picks.to_dict(orient="records")
+
 # ------------------------------
 # List users for recovery (read-only)
 # ------------------------------
