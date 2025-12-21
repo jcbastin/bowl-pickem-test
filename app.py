@@ -266,6 +266,25 @@ def user_has_submitted(username: str, group_name: str) -> bool:
     ).any()
 
 
+def get_eliminated_cfp_teams(games_df):
+    eliminated = set()
+
+    cfp_games = games_df[
+        games_df["bowl_name"].str.contains("CFP", case=False, na=False)
+        & (games_df["completed"] == True)
+        & (games_df["winner"].notna())
+    ]
+
+    for _, row in cfp_games.iterrows():
+        if row["winner"] == row["home_team"]:
+            eliminated.add(row["away_team"])
+        else:
+            eliminated.add(row["home_team"])
+
+    return sorted(list(eliminated))
+
+
+
 # ======================================================
 #               API ROUTES
 # ======================================================
@@ -1034,6 +1053,21 @@ def api_users_with_picks(group_name):
     users_with_picks = users_with_picks.drop_duplicates()
 
     return users_with_picks.to_dict(orient="records")
+
+# ------------------------------
+# Eliminated CFP Teams
+# ------------------------------
+@app.get("/eliminated_cfp_teams")
+def eliminated_cfp_teams():
+    import pandas as pd
+
+    games_df = pd.read_csv(GAMES_PATH)
+    eliminated = get_eliminated_cfp_teams(games_df)
+
+    return {
+        "eliminated_cfp_teams": eliminated
+    }
+
 
 # ------------------------------
 # List users for recovery (read-only)
