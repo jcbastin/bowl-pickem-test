@@ -344,7 +344,17 @@ def get_group_pot(group_name):
 @require_group
 def api_games(group_name):
     df = load_games()
-    return df.to_dict(orient="records")
+
+    games = []
+    for _, row in df.iterrows():
+        bowl_name = str(row.get("bowl_name", ""))
+
+        game = row.to_dict()
+        game["is_cfp"] = "CFP" in bowl_name.upper()
+
+        games.append(game)
+
+    return games
 
 
 # ------------------------------
