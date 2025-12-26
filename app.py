@@ -609,22 +609,37 @@ def api_get_user_picks(group_name):
         return {"error": "Missing username"}, 400
 
     picks_df = load_picks()
+    games_df = load_games()
 
-    # Normalize for matching
     group_lower = group_name.lower()
     username_lower = username.lower()
-
-    # Ensure required columns exist (defensive)
-    for col in ["group_name", "username"]:
-        if col not in picks_df.columns:
-            return []
 
     filtered = picks_df[
         (picks_df["group_name"].str.lower() == group_lower) &
         (picks_df["username"].str.lower() == username_lower)
     ]
 
-    return filtered.to_dict(orient="records")
+    if filtered.empty:
+        return []
+
+    # --- ADD CORRECT FLAG ---
+    filtered["game_id"] = filtered["game_id"].astype(str)
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
+    merged = filtered.merge(
+        games_df[["game_id", "winner", "completed"]],
+        on="game_id",
+        how="left"
+    )
+
+    merged["completed"] = merged["completed"].fillna(False)
+    merged["correct"] = (merged["completed"] == True) & merged.apply(
+        lambda r: normalize_team(r["selected_team"]) == normalize_team(r["winner"]),
+        axis=1
+    )
+
+    return merged.to_dict(orient="records")
+
 
 # ------------------------------
 # Get user's tiebreaker (for "Your Picks" page)
@@ -1287,18 +1302,48 @@ def api_get_picks_by_token(token):
     tiebreaker = row.iloc[0]["tiebreaker"]
 
     picks_df = load_picks()
+    games_df = load_games()
+
+    # Filter picks for this user
     user_picks = picks_df[
         (picks_df["group_name"] == group_name) &
         (picks_df["username"] == username)
     ]
+
+    if user_picks.empty:
+        return jsonify({
+            "group": group_name,
+            "username": username,
+            "name": name,
+            "tiebreaker": tiebreaker,
+            "picks": []
+        })
+
+    # Ensure string game_id for merge
+    user_picks["game_id"] = user_picks["game_id"].astype(str)
+    games_df["game_id"] = games_df["game_id"].astype(str)
+
+    # Merge to compute correctness server-side
+    merged = user_picks.merge(
+        games_df[["game_id", "winner", "completed"]],
+        on="game_id",
+        how="left"
+    )
+
+    merged["completed"] = merged["completed"].fillna(False)
+    merged["correct"] = (merged["completed"] == True) & merged.apply(
+        lambda r: normalize_team(r["selected_team"]) == normalize_team(r["winner"]),
+        axis=1
+    )
 
     return jsonify({
         "group": group_name,
         "username": username,
         "name": name,
         "tiebreaker": tiebreaker,
-        "picks": user_picks.to_dict(orient="records")
+        "picks": merged.to_dict(orient="records")
     })
+
 
 
 @app.route("/p/<token>")
