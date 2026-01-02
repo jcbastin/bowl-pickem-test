@@ -283,16 +283,23 @@ def get_eliminated_cfp_teams(games_df):
     cfp_games = games_df[
         games_df["bowl_name"].str.contains("CFP", case=False, na=False)
         & (games_df["completed"] == True)
-        & (games_df["winner"].notna())
+        & (games_df["winner"].astype(str).str.strip() != "")
     ]
 
     for _, row in cfp_games.iterrows():
-        if row["winner"] == row["home_team"]:
-            eliminated.add(row["away_team"])
-        else:
-            eliminated.add(row["home_team"])
+        winner = normalize_team(row["winner"])
+        home = normalize_team(row["home_team"])
+        away = normalize_team(row["away_team"])
 
-    return sorted(list(eliminated))
+        # Only eliminate if winner matches one side exactly
+        if winner == home:
+            eliminated.add(row["away_team"])
+        elif winner == away:
+            eliminated.add(row["home_team"])
+        # else: do NOTHING (data not reliable yet)
+
+    return sorted(eliminated)
+
 
 
 
