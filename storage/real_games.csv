@@ -45,4 +45,4 @@ game_id,bowl_name,kickoff_datetime,point_value,away_team,home_team,away_rank,hom
 44,Trust & Will Holiday Bowl,2026-01-02 20:00:00,1,Arizona,SMU,17.0,,9-3,8-4,NOT_STARTED,,False,,,401831583,/static/logos/Arizona.png,/static/logos/SMU.png,"Snapdragon Stadium, San Diego, CA",FOX,3.0
 45,CFP Semifinal - Fiesta Bowl,2026-01-08 19:30:00,4,Miami,Ole Miss,,,,,NOT_STARTED,,False,,,401769075,/static/logos/Miami.png,/static/logos/Ole_Miss.png,"State Farm Stadium, Glendale, AZ",ESPN,
 46,CFP Semifinal - Peach Bowl,2026-01-09 19:30:00,4,Oregon,Indiana,,,,,NOT_STARTED,,False,,,401769074,/static/logos/Oregon.png,/static/logos/Indiana.png,"Mercedes-Benz Stadium, Atlanta, GA",ESPN,
-47,CFP National Championship,2026-01-19 19:30:00,5,TBD_NC_1,TBD_NC_2,,,,,NOT_STARTED,,False,,,0,/static/logos/TBD_NC_1.png,/static/logos/TBD_NC_2.png,"Hard Rock Stadium, Miami Gardens, FL",ESPN,
+47,CFP National Championship,2026-01-19 19:30:00,5,Miami,Indiana,,,,,NOT_STARTED,,False,,,401769076,/static/logos/Miami.png,/static/logos/Indiana.png,"Hard Rock Stadium, Miami Gardens, FL",ESPN,
